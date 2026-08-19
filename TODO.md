@@ -71,8 +71,8 @@ fund tables on `funds.nationalpensionhelpline.ie` are rendered client-side (conf
 inspecting the raw HTML response, which has no fund data in it), so it uses Playwright
 to render the page and read the table DOM. This also means it **can't run as a Supabase
 Edge Function** (Deno has no headless browser) — it's scheduled via
-`.github/workflows/scrape-funds.yml` (GitHub Actions cron, daily 06:00 UTC) instead of
-`pg_cron`.
+`.github/workflows/scrape-funds.yml` (GitHub Actions cron, **weekly, Mondays 06:00
+UTC**) instead of `pg_cron`.
 
 Verified with `pnpm scrape:funds --dry-run` against the real site: scraped **136 real
 funds** across all 10 providers with actual risk ratings, categories, and 1yr/5yr/10yr
@@ -80,12 +80,20 @@ returns. Without `SUPABASE_SERVICE_ROLE_KEY` set, it automatically runs in dry-r
 (scrapes and prints a summary, writes nothing) — I don't have that key, so I could not
 verify the actual Supabase write path, only the scraping/parsing logic. To go live:
 
-1. Apply `supabase/migrations/002_scraper_support.sql` (adds `subcategory`,
-   `ten_year_return`, makes `amc`/`nav` nullable, adds the `fund_prices_latest` view).
+1. Apply `supabase/migrations/002_scraper_support.sql` then `003_scrape_log_rls.sql`
+   (adds `subcategory`, `ten_year_return`, makes `amc`/`nav` nullable, adds the
+   `fund_prices_latest` view, and — a pre-existing gap in 001 I caught while wiring up
+   the "last updated" display — enables RLS on `scrape_log`, which had none).
 2. Add `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` as GitHub Actions
    repository secrets (Settings → Secrets and variables → Actions).
 3. Run `pnpm scrape:funds` locally once (or trigger the workflow manually via
-   `workflow_dispatch`) to confirm the write path works, then let the daily cron take over.
+   `workflow_dispatch`) to confirm the write path works, then let the weekly cron take
+   over.
+
+**"Fund data last updated" display**: `/funds` and `/funds/[id]` read the latest
+successful `scrape_log.finished_at` (via `fetchLastScrapeTime` in
+`lib/supabase/funds-queries.ts`) and show it once live data is active — shows nothing in
+mock mode, since there's nothing to date.
 
 Notes on data fidelity: the source publishes 1yr/5yr/10yr returns, not 3yr — the app's
 3yr figure is linearly interpolated when data comes from the scraper (see

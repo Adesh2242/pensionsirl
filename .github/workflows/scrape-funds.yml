@@ -2,8 +2,10 @@ name: Scrape fund data
 
 on:
   schedule:
-    # 06:00 UTC daily. Adjust to taste — the source site updates infrequently.
-    - cron: "0 6 * * *"
+    # 06:00 UTC every Monday. The source site updates infrequently, and
+    # scrape_log.finished_at (shown in the app as "Fund data last updated")
+    # tracks the actual run time regardless of schedule.
+    - cron: "0 6 * * 1"
   workflow_dispatch: {}
 
 jobs:

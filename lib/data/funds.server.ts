@@ -3,6 +3,7 @@ import { createPublicClient as createClient } from "@/lib/supabase/public";
 import {
   fetchFundFromSupabase,
   fetchFundsFromSupabase,
+  fetchLastScrapeTime,
   fetchProvidersFromSupabase,
 } from "@/lib/supabase/funds-queries";
 import { funds as mockFunds, providers as mockProviders, getFund as getMockFund } from "@/lib/mock-data";
@@ -52,5 +53,18 @@ export async function getAllProviders(): Promise<Provider[]> {
   } catch (error) {
     console.warn("Supabase providers query failed, falling back to mock data:", error);
     return mockProviders;
+  }
+}
+
+/** null in mock mode, or if the scraper hasn't completed a run yet. */
+export async function getLastScrapeTime(): Promise<string | null> {
+  const supabase = await createClient();
+  if (!supabase) return null;
+
+  try {
+    return await fetchLastScrapeTime(supabase);
+  } catch (error) {
+    console.warn("Supabase scrape_log query failed:", error);
+    return null;
   }
 }

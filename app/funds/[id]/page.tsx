@@ -6,8 +6,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RiskBadge } from "@/components/funds/risk-badge";
-import { getAllFunds, getFundBySlug } from "@/lib/data/funds.server";
-import { formatAmc } from "@/lib/utils";
+import { getAllFunds, getFundBySlug, getLastScrapeTime } from "@/lib/data/funds.server";
+import { formatAmc, formatLastUpdated } from "@/lib/utils";
 
 type Params = Promise<{ id: string }>;
 
@@ -34,6 +34,7 @@ export default async function FundDetailPage({ params }: { params: Params }) {
   // tenYearReturn is only ever set by the live scraper (mock data never sets
   // it), so its presence is a reliable signal for which disclaimer to show.
   const isLiveData = fund.tenYearReturn !== undefined;
+  const lastScrapeTime = isLiveData ? await getLastScrapeTime() : null;
 
   const returns = [
     { label: "1 year", value: fund.oneYearReturn },
@@ -114,6 +115,9 @@ export default async function FundDetailPage({ params }: { params: Params }) {
             {isLiveData
               ? "1yr/5yr/10yr sourced from the National Pension Helpline fund explorer; the 3yr figure is interpolated (not separately published) — see How it Works."
               : "These figures are illustrative, generated from the fund's real risk rating — not live NAV or return data. Live performance requires the scraper integration described in TODO.md."}
+            {isLiveData && lastScrapeTime && (
+              <> Fund data last updated {formatLastUpdated(lastScrapeTime)} UTC.</>
+            )}
           </p>
         </CardContent>
       </Card>

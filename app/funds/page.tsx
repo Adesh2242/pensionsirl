@@ -14,9 +14,10 @@ import {
 import { FundCard } from "@/components/funds/fund-card";
 import { assetClasses } from "@/lib/mock-data";
 import { useFunds } from "@/lib/hooks/use-funds";
+import { formatLastUpdated } from "@/lib/utils";
 
 function FundsExplorer() {
-  const { funds, providers } = useFunds();
+  const { funds, providers, source, lastScrapeTime } = useFunds();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
   const [provider, setProvider] = useState(searchParams.get("provider") ?? "all");
@@ -56,13 +57,30 @@ function FundsExplorer() {
       <div className="mb-8">
         <h1 className="text-3xl font-semibold tracking-tight">Fund explorer</h1>
         <p className="mt-2 text-muted-foreground">
-          {funds.length} funds across {providers.length} Irish providers. Performance figures
-          are illustrative — see{" "}
-          <a href="/how-it-works" className="underline underline-offset-2">
-            data sources
-          </a>
-          .
+          {funds.length} funds across {providers.length} Irish providers.{" "}
+          {source === "supabase" ? (
+            <>
+              Sourced from the National Pension Helpline fund explorer — see{" "}
+              <a href="/how-it-works" className="underline underline-offset-2">
+                data sources
+              </a>
+              .
+            </>
+          ) : (
+            <>
+              Performance figures are illustrative — see{" "}
+              <a href="/how-it-works" className="underline underline-offset-2">
+                data sources
+              </a>
+              .
+            </>
+          )}
         </p>
+        {source === "supabase" && lastScrapeTime && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Fund data last updated {formatLastUpdated(lastScrapeTime)} UTC
+          </p>
+        )}
       </div>
 
       <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
