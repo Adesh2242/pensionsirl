@@ -6,33 +6,42 @@ import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RiskBadge } from "@/components/funds/risk-badge";
-import { funds, getFund } from "@/lib/mock-data";
+import { getAllFunds, getFundBySlug } from "@/lib/data/funds.server";
+import { formatAmc } from "@/lib/utils";
 
 type Params = Promise<{ id: string }>;
 
 export async function generateStaticParams() {
+  const funds = await getAllFunds();
   return funds.map((fund) => ({ id: fund.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { id } = await params;
-  const fund = getFund(id);
+  const fund = await getFundBySlug(id);
   if (!fund) return {};
   return {
     title: `${fund.name} — ${fund.providerName}`,
-    description: `${fund.name} from ${fund.providerName}: ${fund.assetClass}, risk ${fund.riskRating}/7, ${fund.amc.toFixed(2)}% AMC.`,
+    description: `${fund.name} from ${fund.providerName}: ${fund.assetClass}, risk ${fund.riskRating}/7, ${formatAmc(fund.amc)} AMC.`,
   };
 }
 
 export default async function FundDetailPage({ params }: { params: Params }) {
   const { id } = await params;
-  const fund = getFund(id);
+  const fund = await getFundBySlug(id);
   if (!fund) notFound();
+
+  // tenYearReturn is only ever set by the live scraper (mock data never sets
+  // it), so its presence is a reliable signal for which disclaimer to show.
+  const isLiveData = fund.tenYearReturn !== undefined;
 
   const returns = [
     { label: "1 year", value: fund.oneYearReturn },
-    { label: "3 years (annualised)", value: fund.threeYearReturn },
+    { label: isLiveData ? "3 years (interpolated)" : "3 years (annualised)", value: fund.threeYearReturn },
     { label: "5 years (annualised)", value: fund.fiveYearReturn },
+    ...(fund.tenYearReturn !== undefined
+      ? [{ label: "10 years (annualised)", value: fund.tenYearReturn }]
+      : []),
   ];
 
   return (
@@ -62,8 +71,12 @@ export default async function FundDetailPage({ params }: { params: Params }) {
             <CardTitle className="text-base">Charges</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-semibold">{fund.amc.toFixed(2)}%</p>
-            <p className="text-sm text-muted-foreground">Annual management charge (AMC)</p>
+            <p className="text-3xl font-semibold">{formatAmc(fund.amc)}</p>
+            <p className="text-sm text-muted-foreground">
+              {fund.amc === undefined
+                ? "Not published by our data source"
+                : "Annual management charge (AMC)"}
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -81,10 +94,10 @@ export default async function FundDetailPage({ params }: { params: Params }) {
 
       <Card className="mt-4">
         <CardHeader>
-          <CardTitle className="text-base">Illustrative performance</CardTitle>
+          <CardTitle className="text-base">Performance</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             {returns.map((r) => (
               <div key={r.label}>
                 <p className="text-xs text-muted-foreground">{r.label}</p>
@@ -98,9 +111,9 @@ export default async function FundDetailPage({ params }: { params: Params }) {
             ))}
           </div>
           <p className="mt-4 text-xs text-muted-foreground">
-            These figures are illustrative, generated from the fund&apos;s real risk rating —
-            not live NAV or return data. Live performance requires the scraper integration
-            described in TODO.md.
+            {isLiveData
+              ? "1yr/5yr/10yr sourced from the National Pension Helpline fund explorer; the 3yr figure is interpolated (not separately published) — see How it Works."
+              : "These figures are illustrative, generated from the fund's real risk rating — not live NAV or return data. Live performance requires the scraper integration described in TODO.md."}
           </p>
         </CardContent>
       </Card>

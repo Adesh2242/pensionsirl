@@ -124,14 +124,9 @@ create policy "Users can insert their own consent record" on consent_log
   for insert with check (auth.uid() = user_id or user_id is null);
 
 -- ---------------------------------------------------------------------------
--- Scheduled scrape (disabled by default — enable once pg_cron is available)
+-- Scheduled scrape
 -- ---------------------------------------------------------------------------
-
--- select cron.schedule(
---   'scrape-funds-daily',
---   '0 6 * * *',
---   $$select net.http_post(
---     url := 'https://YOUR_PROJECT.supabase.co/functions/v1/scrape-funds',
---     headers := '{"Authorization": "Bearer YOUR_SERVICE_ROLE_KEY"}'::jsonb
---   )$$
--- );
+-- Not a pg_cron + Supabase Edge Function (Deno can't run a headless browser,
+-- and the scrape source renders fund tables client-side — see
+-- scripts/scrape-funds.ts for details). Scheduled instead via
+-- .github/workflows/scrape-funds.yml (GitHub Actions cron, daily 06:00 UTC).

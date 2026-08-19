@@ -4,7 +4,8 @@ export type AssetClass =
   | "Bond"
   | "Cash"
   | "Property"
-  | "Lifecycle";
+  | "Lifecycle"
+  | "Alternative";
 
 export type SfdrArticle = 6 | 8 | 9;
 
@@ -24,14 +25,21 @@ export interface Fund {
   assetClass: AssetClass;
   /** Industry-standard 1 (lowest) to 7 (highest) SRI risk rating. */
   riskRating: number;
-  /** Annual management charge, percent. */
-  amc: number;
+  /**
+   * Annual management charge, percent. Optional because the live scrape
+   * source (National Pension Helpline) doesn't publish AMC — only the
+   * curated mock dataset has it. Real scraped funds will show "—" in the UI.
+   */
+  amc?: number;
+  subcategory?: string;
   sfdrArticle?: SfdrArticle;
   manager?: string;
   description: string;
   oneYearReturn: number;
+  /** Interpolated between 1yr/5yr when sourced from the live scraper, which only publishes 1Y/5Y/10Y. */
   threeYearReturn: number;
   fiveYearReturn: number;
+  tenYearReturn?: number;
 }
 
 export interface UserProfile {

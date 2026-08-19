@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { RiskBadge } from "@/components/funds/risk-badge";
 import type { Fund } from "@/lib/types";
+import { formatAmc } from "@/lib/utils";
 
 export function FundCard({ fund }: { fund: Fund }) {
   return (
@@ -22,7 +23,7 @@ export function FundCard({ fund }: { fund: Fund }) {
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div>
             <p className="text-muted-foreground">AMC</p>
-            <p className="font-medium">{fund.amc.toFixed(2)}%</p>
+            <p className="font-medium">{formatAmc(fund.amc)}</p>
           </div>
           <div>
             <p className="text-muted-foreground">1yr return</p>

@@ -5,6 +5,7 @@ import { AuthProvider } from "@/lib/auth-context";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { CookieBanner } from "@/components/layout/cookie-banner";
+import { SITE_URL } from "@/lib/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,7 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://pensioniq.ie"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "PensionIQ — Irish Pension Fund Explorer & Retirement Calculator",
     template: "%s | PensionIQ",
@@ -36,7 +37,7 @@ export const metadata: Metadata = {
     title: "PensionIQ — Irish Pension Fund Explorer & Retirement Calculator",
     description:
       "Compare Irish pension funds, project your retirement pot, and get AI-powered fund suggestions.",
-    url: "https://pensioniq.ie",
+    url: SITE_URL,
     siteName: "PensionIQ",
     locale: "en_IE",
     type: "website",

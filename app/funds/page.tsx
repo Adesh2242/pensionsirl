@@ -12,9 +12,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FundCard } from "@/components/funds/fund-card";
-import { assetClasses, funds, providers } from "@/lib/mock-data";
+import { assetClasses } from "@/lib/mock-data";
+import { useFunds } from "@/lib/hooks/use-funds";
 
 function FundsExplorer() {
+  const { funds, providers } = useFunds();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
   const [provider, setProvider] = useState(searchParams.get("provider") ?? "all");
@@ -34,7 +36,8 @@ function FundsExplorer() {
     const sorted = [...list];
     switch (sort) {
       case "amc-asc":
-        sorted.sort((a, b) => a.amc - b.amc);
+        // Funds without a published AMC (live-scraped data) sort last.
+        sorted.sort((a, b) => (a.amc ?? Infinity) - (b.amc ?? Infinity));
         break;
       case "return-desc":
         sorted.sort((a, b) => b.oneYearReturn - a.oneYearReturn);
@@ -46,7 +49,7 @@ function FundsExplorer() {
         sorted.sort((a, b) => a.name.localeCompare(b.name));
     }
     return sorted;
-  }, [provider, assetClass, query, sort]);
+  }, [funds, provider, assetClass, query, sort]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">

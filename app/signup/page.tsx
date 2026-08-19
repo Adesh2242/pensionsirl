@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -16,6 +16,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [confirmEmailSent, setConfirmEmailSent] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -26,7 +27,7 @@ export default function SignupPage() {
     setLoading(true);
     setError(null);
     const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { name } },
@@ -36,8 +37,35 @@ export default function SignupPage() {
       setError(error.message);
       return;
     }
+    // Projects with email confirmation enabled (Supabase's default) return a
+    // user but no session until the confirmation link is clicked.
+    if (!data.session) {
+      setConfirmEmailSent(true);
+      return;
+    }
     router.push("/");
     router.refresh();
+  }
+
+  if (confirmEmailSent) {
+    return (
+      <div className="mx-auto flex min-h-[70vh] max-w-md items-center px-4 py-10">
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle>Check your email</CardTitle>
+            <CardDescription>
+              We sent a confirmation link to <strong>{email}</strong>. Click it to activate
+              your account, then log in.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/login" className={buttonVariants({ className: "w-full" })}>
+              Go to log in
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (

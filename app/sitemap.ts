@@ -1,9 +1,9 @@
 import type { MetadataRoute } from "next";
-import { funds } from "@/lib/mock-data";
+import { getAllFunds } from "@/lib/data/funds.server";
+import { SITE_URL as BASE_URL } from "@/lib/site";
 
-const BASE_URL = "https://pensioniq.ie";
-
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const funds = await getAllFunds();
   const staticRoutes = [
     "",
     "/funds",
@@ -11,6 +11,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/calculator",
     "/ai-suggestions",
     "/how-it-works",
+    "/privacy",
     "/login",
     "/signup",
   ].map((path) => ({

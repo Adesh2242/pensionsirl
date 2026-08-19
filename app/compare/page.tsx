@@ -13,7 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RiskBadge } from "@/components/funds/risk-badge";
-import { funds } from "@/lib/mock-data";
+import { useFunds } from "@/lib/hooks/use-funds";
+import { formatAmc } from "@/lib/utils";
 
 const MAX_COMPARE = 4;
 
@@ -37,6 +38,7 @@ function useSelectedSlugs() {
 }
 
 function ComparePage() {
+  const { funds } = useFunds();
   const { slugs, setSlugs } = useSelectedSlugs();
   const selectedFunds = slugs
     .map((slug) => funds.find((f) => f.slug === slug))
@@ -57,7 +59,7 @@ function ComparePage() {
     { label: "Provider", render: (f) => f.providerName },
     { label: "Asset class", render: (f) => f.assetClass },
     { label: "Risk rating", render: (f) => <RiskBadge risk={f.riskRating} /> },
-    { label: "AMC", render: (f) => `${f.amc.toFixed(2)}%` },
+    { label: "AMC", render: (f) => formatAmc(f.amc) },
     {
       label: "1yr return",
       render: (f) => `${f.oneYearReturn >= 0 ? "+" : ""}${f.oneYearReturn.toFixed(1)}%`,
