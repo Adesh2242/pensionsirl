@@ -49,9 +49,9 @@ export function CookieBanner() {
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted-foreground">
             We use essential cookies to run PensionIQ, and optional analytics cookies to
-            understand usage. No advertising or tracking pixels. See our approach in{" "}
-            <a href="/how-it-works" className="underline underline-offset-2">
-              How it Works
+            understand usage. No advertising or tracking pixels. See our{" "}
+            <a href="/privacy" className="underline underline-offset-2">
+              Privacy Policy
             </a>
             .
           </p>

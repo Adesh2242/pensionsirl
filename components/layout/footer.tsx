@@ -22,6 +22,7 @@ export function Footer() {
             <p className="font-medium text-foreground">About</p>
             <ul className="mt-2 space-y-1">
               <li><Link href="/how-it-works" className="hover:text-foreground">How it works</Link></li>
+              <li><Link href="/privacy" className="hover:text-foreground">Privacy policy</Link></li>
               <li><Link href="/settings" className="hover:text-foreground">Your data &amp; privacy</Link></li>
             </ul>
           </div>

@@ -25,6 +25,7 @@ export default function SettingsPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -54,12 +55,22 @@ export default function SettingsPage() {
 
   async function deleteAccount() {
     setDeleting(true);
+    setDeleteError(null);
     const supabase = createClient();
+
     if ("isMock" in supabase) {
       await supabase.auth.deleteAccount();
     } else {
+      const res = await fetch("/api/account", { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setDeleteError(data.error ?? "Failed to delete account. Please try again.");
+        setDeleting(false);
+        return;
+      }
       await supabase.auth.signOut();
     }
+
     setDeleting(false);
     setConfirmOpen(false);
     router.push("/");
@@ -129,6 +140,7 @@ export default function SettingsPage() {
               placeholder="DELETE"
             />
           </div>
+          {deleteError && <p className="text-sm text-red-600">{deleteError}</p>}
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>
               Cancel

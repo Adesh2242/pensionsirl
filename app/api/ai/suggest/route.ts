@@ -1,44 +1,51 @@
 import { NextResponse } from "next/server";
-import { funds } from "@/lib/mock-data";
+import { getAllFunds } from "@/lib/data/funds.server";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { formatAmc } from "@/lib/utils";
+import type { Fund } from "@/lib/types";
 
 export const runtime = "nodejs";
 
-const GEMINI_MODEL = "gemini-2.0-flash";
+const GEMINI_MODEL = "gemini-3.6-flash";
 const MAX_MESSAGE_LENGTH = 1000;
 
-// Simple in-memory rate limit: 20 requests / hour per client IP. Resets on
-// server restart — fine as a first line of defence, not a substitute for a
-// real limiter (e.g. Vercel's or Upstash) in production. See TODO.md.
+// 20 requests / hour per client IP. Durable (Upstash Redis) when
+// UPSTASH_REDIS_REST_URL/_TOKEN are set, else an in-memory fallback that
+// resets on restart and doesn't share state across instances. See TODO.md.
 const RATE_LIMIT = 20;
-const RATE_WINDOW_MS = 60 * 60 * 1000;
-const requestLog = new Map<string, number[]>();
+const RATE_WINDOW_SECONDS = 60 * 60;
 
-function isRateLimited(key: string) {
-  const now = Date.now();
-  const timestamps = (requestLog.get(key) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
-  timestamps.push(now);
-  requestLog.set(key, timestamps);
-  return timestamps.length > RATE_LIMIT;
+// Fund catalog changes at most once a day (scraper run), so it's cached
+// in-memory rather than re-queried on every chat message.
+const CATALOG_TTL_MS = 5 * 60 * 1000;
+let catalogCache: { funds: Fund[]; expiresAt: number } | null = null;
+
+async function getCachedFunds(): Promise<Fund[]> {
+  if (catalogCache && catalogCache.expiresAt > Date.now()) {
+    return catalogCache.funds;
+  }
+  const funds = await getAllFunds();
+  catalogCache = { funds, expiresAt: Date.now() + CATALOG_TTL_MS };
+  return funds;
 }
 
-const FUND_CATALOG_SUMMARY = funds
-  .map(
-    (f) =>
-      `${f.providerName} — ${f.name} (${f.assetClass}, risk ${f.riskRating}/7, AMC ${f.amc.toFixed(2)}%)`,
-  )
-  .join("\n");
+function buildSystemPrompt(funds: Fund[]) {
+  const catalog = funds
+    .map((f) => `${f.providerName} — ${f.name} (${f.assetClass}, risk ${f.riskRating}/7, AMC ${formatAmc(f.amc)})`)
+    .join("\n");
 
-const SYSTEM_PROMPT = `You are the PensionIQ AI assistant, helping users in Ireland understand pension funds and retirement planning. Only discuss Irish pensions, PRSAs, tax relief, and the fund catalog below. Be concise (under 200 words), reference specific funds by name and provider when relevant, and always include a brief disclaimer that this is not regulated financial advice.
+  return `You are the PensionIQ AI assistant, helping users in Ireland understand pension funds and retirement planning. Only discuss Irish pensions, PRSAs, tax relief, and the fund catalog below. Keep your entire reply under 120 words and at most 3 bullet points — this is a strict limit, not a suggestion. Reference specific funds by name and provider when relevant, and end with a one-line disclaimer that this is not regulated financial advice. Output plain text only — no markdown (no **bold**, no #headings, no [links]); use a leading "-" for bullet points.
 
 Fund catalog:
-${FUND_CATALOG_SUMMARY}`;
+${catalog}`;
+}
 
 function keywordMatch(message: string, words: string[]) {
   const lower = message.toLowerCase();
   return words.some((w) => lower.includes(w));
 }
 
-function mockSuggestion(message: string) {
+function mockSuggestion(message: string, funds: Fund[]) {
   let riskBand: [number, number] = [3, 5];
   if (keywordMatch(message, ["cautious", "low risk", "safe", "conservative", "cash"])) {
     riskBand = [1, 2];
@@ -55,12 +62,11 @@ function mockSuggestion(message: string) {
   );
   const picks = (candidates.length ? candidates : funds)
     .slice()
-    .sort((a, b) => a.amc - b.amc)
+    .sort((a, b) => (a.amc ?? Infinity) - (b.amc ?? Infinity))
     .slice(0, 3);
 
   const lines = picks.map(
-    (f) =>
-      `• ${f.name} (${f.providerName}) — ${f.assetClass}, risk ${f.riskRating}/7, ${f.amc.toFixed(2)}% AMC`,
+    (f) => `• ${f.name} (${f.providerName}) — ${f.assetClass}, risk ${f.riskRating}/7, ${formatAmc(f.amc)} AMC`,
   );
 
   return [
@@ -72,9 +78,24 @@ function mockSuggestion(message: string) {
   ].join("\n");
 }
 
+function isSameOrigin(request: Request) {
+  const origin = request.headers.get("origin");
+  if (!origin) return true; // same-origin requests may omit Origin (e.g. curl, some browsers)
+  try {
+    return new URL(origin).host === new URL(request.url).host;
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(request: Request) {
+  if (!isSameOrigin(request)) {
+    return NextResponse.json({ error: "Cross-origin requests are not allowed." }, { status: 403 });
+  }
+
   const ip = request.headers.get("x-forwarded-for") ?? "unknown";
-  if (isRateLimited(ip)) {
+  const { success } = await checkRateLimit(`ai-suggest:${ip}`, RATE_LIMIT, RATE_WINDOW_SECONDS);
+  if (!success) {
     return NextResponse.json(
       { error: "Too many requests. Please try again later." },
       { status: 429 },
@@ -93,9 +114,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Message is required." }, { status: 400 });
   }
 
+  const funds = await getCachedFunds();
+
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return NextResponse.json({ reply: mockSuggestion(message), source: "mock" });
+    return NextResponse.json({ reply: mockSuggestion(message, funds), source: "mock" });
   }
 
   try {
@@ -105,9 +128,13 @@ export async function POST(request: Request) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          systemInstruction: { parts: [{ text: buildSystemPrompt(funds) }] },
           contents: [{ role: "user", parts: [{ text: message }] }],
-          generationConfig: { maxOutputTokens: 512, temperature: 0.6 },
+          generationConfig: {
+            maxOutputTokens: 1600,
+            temperature: 0.6,
+            thinkingConfig: { thinkingBudget: 128 },
+          },
         }),
       },
     );
@@ -127,6 +154,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ reply, source: "gemini" });
   } catch (error) {
     console.error("AI suggest route falling back to mock:", error);
-    return NextResponse.json({ reply: mockSuggestion(message), source: "mock" });
+    return NextResponse.json({ reply: mockSuggestion(message, funds), source: "mock" });
   }
 }

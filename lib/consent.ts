@@ -20,5 +20,15 @@ export function writeConsent(analytics: boolean) {
   if (typeof window === "undefined") return;
   const state: ConsentState = { necessary: true, analytics, decidedAt: new Date().toISOString() };
   localStorage.setItem(CONSENT_STORAGE_KEY, JSON.stringify(state));
+
+  // Best-effort server-side audit log (see app/api/consent/route.ts).
+  // localStorage above is the source of truth for the user's actual
+  // consent — this call is fire-and-forget and must never block or throw.
+  fetch("/api/consent", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ analytics }),
+  }).catch(() => {});
+
   return state;
 }

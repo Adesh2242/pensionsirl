@@ -64,7 +64,7 @@ function round2(n: number) {
   return Math.round(n * 100) / 100;
 }
 
-function slugify(providerSlug: string, name: string) {
+export function slugify(providerSlug: string, name: string) {
   return `${providerSlug}-${name
     .toLowerCase()
     .replace(/[()]/g, "")
@@ -72,7 +72,7 @@ function slugify(providerSlug: string, name: string) {
     .replace(/(^-|-$)/g, "")}`;
 }
 
-function categoryDescription(assetClass: AssetClass, riskRating: number) {
+export function categoryDescription(assetClass: AssetClass, riskRating: number) {
   const riskWord =
     riskRating <= 2
       ? "low"
@@ -94,6 +94,8 @@ function categoryDescription(assetClass: AssetClass, riskRating: number) {
       return `A property fund investing in commercial and/or residential real estate, a ${riskWord}-risk profile.`;
     case "Lifecycle":
       return `An automatically de-risking lifestyle strategy that shifts from growth assets to safer assets as retirement approaches.`;
+    case "Alternative":
+      return `An alternative strategy fund (e.g. specialist, absolute-return, or fund-of-funds), a ${riskWord}-risk profile.`;
   }
 }
 
@@ -274,4 +276,5 @@ export const assetClasses: AssetClass[] = [
   "Cash",
   "Property",
   "Lifecycle",
+  "Alternative",
 ];
