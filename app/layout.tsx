@@ -1,0 +1,68 @@
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+import { AuthProvider } from "@/lib/auth-context";
+import { Navbar } from "@/components/layout/navbar";
+import { Footer } from "@/components/layout/footer";
+import { CookieBanner } from "@/components/layout/cookie-banner";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+export const metadata: Metadata = {
+  metadataBase: new URL("https://pensioniq.ie"),
+  title: {
+    default: "PensionIQ — Irish Pension Fund Explorer & Retirement Calculator",
+    template: "%s | PensionIQ",
+  },
+  description:
+    "Compare Irish pension funds across 10 providers, project your retirement pot with Irish Revenue tax relief rules, and get AI-powered fund suggestions.",
+  keywords: [
+    "pension Ireland",
+    "Irish pension funds",
+    "pension calculator Ireland",
+    "PRSA",
+    "retirement planning Ireland",
+    "pension tax relief Ireland",
+  ],
+  openGraph: {
+    title: "PensionIQ — Irish Pension Fund Explorer & Retirement Calculator",
+    description:
+      "Compare Irish pension funds, project your retirement pot, and get AI-powered fund suggestions.",
+    url: "https://pensioniq.ie",
+    siteName: "PensionIQ",
+    locale: "en_IE",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "PensionIQ — Irish Pension Fund Explorer & Retirement Calculator",
+    description:
+      "Compare Irish pension funds, project your retirement pot, and get AI-powered fund suggestions.",
+  },
+};
+
+export default function RootLayout({ children }: LayoutProps<"/">) {
+  return (
+    <html
+      lang="en-IE"
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+    >
+      <body className="flex min-h-full flex-col">
+        <AuthProvider>
+          <Navbar />
+          <main className="flex-1">{children}</main>
+          <Footer />
+          <CookieBanner />
+        </AuthProvider>
+      </body>
+    </html>
+  );
+}
