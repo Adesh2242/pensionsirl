@@ -18,3 +18,18 @@ export function RiskBadge({ risk }: { risk: number }) {
     </Badge>
   );
 }
+
+const RISK_TEXT_STYLES: Record<number, string> = {
+  1: "text-emerald-600 dark:text-emerald-400",
+  2: "text-emerald-600 dark:text-emerald-400",
+  3: "text-amber-600 dark:text-amber-400",
+  4: "text-amber-600 dark:text-amber-400",
+  5: "text-orange-600 dark:text-orange-400",
+  6: "text-red-600 dark:text-red-400",
+  7: "text-red-600 dark:text-red-400",
+};
+
+/** Text color matching the same risk tier as RiskBadge, for a raw number (e.g. "5/7") elsewhere on the page. */
+export function riskTextClass(risk: number): string {
+  return RISK_TEXT_STYLES[risk] ?? "";
+}

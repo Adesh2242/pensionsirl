@@ -2,7 +2,8 @@ import Link from "next/link";
 import { ArrowRight, Calculator, Scale, Search, Sparkles } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { funds, providers } from "@/lib/mock-data";
+import { getAllFunds, getAllProviders } from "@/lib/data/funds.server";
+import { hueForName } from "@/lib/color-hash";
 
 const features = [
   {
@@ -10,31 +11,37 @@ const features = [
     icon: Search,
     title: "Explore funds",
     description: "Search and filter pension funds by provider, asset class, risk rating and AMC.",
+    color: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
   },
   {
     href: "/compare",
     icon: Scale,
     title: "Compare side-by-side",
     description: "Pick funds from any provider and compare charges, risk and illustrative performance.",
+    color: "bg-teal-100 text-teal-600 dark:bg-teal-950 dark:text-teal-400",
   },
   {
     href: "/calculator",
     icon: Calculator,
     title: "Project your pot",
     description: "Model your retirement pot using real Irish Revenue age-related tax relief rules.",
+    color: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
   },
   {
     href: "/ai-suggestions",
     icon: Sparkles,
     title: "Get AI suggestions",
     description: "Describe your risk appetite and get a shortlist of funds worth researching further.",
+    color: "bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-400",
   },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const [funds, providers] = await Promise.all([getAllFunds(), getAllProviders()]);
+
   return (
     <div className="flex flex-col">
-      <section className="border-b bg-muted/30">
+      <section className="border-b bg-gradient-to-b from-blue-50 via-muted/30 to-background dark:from-blue-950/20 dark:via-muted/30 dark:to-background">
         <div className="mx-auto max-w-6xl px-4 py-20 text-center">
           <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl">
             Make sense of your Irish pension
@@ -66,7 +73,9 @@ export default function Home() {
             <Link key={feature.href} href={feature.href}>
               <Card className="h-full transition-colors hover:border-primary/50">
                 <CardHeader>
-                  <feature.icon className="h-6 w-6 text-primary" aria-hidden />
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${feature.color}`}>
+                    <feature.icon className="h-5 w-5" aria-hidden />
+                  </div>
                   <CardTitle className="mt-2">{feature.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -86,10 +95,18 @@ export default function Home() {
               <Link
                 key={provider.slug}
                 href={`/funds?provider=${provider.slug}`}
-                className="rounded-lg border bg-background p-4 text-sm transition-colors hover:border-primary/50"
+                className="flex items-center gap-3 rounded-lg border bg-background p-4 text-sm transition-colors hover:border-primary/50"
               >
-                <p className="font-medium">{provider.name}</p>
-                <p className="text-xs text-muted-foreground">{provider.realFundCount} funds</p>
+                <div
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${hueForName(provider.name)}`}
+                  aria-hidden
+                >
+                  {provider.name[0]}
+                </div>
+                <div>
+                  <p className="font-medium">{provider.name}</p>
+                  <p className="text-xs text-muted-foreground">{provider.realFundCount} funds</p>
+                </div>
               </Link>
             ))}
           </div>

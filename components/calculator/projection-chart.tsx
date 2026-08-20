@@ -10,14 +10,7 @@ import {
   YAxis,
 } from "recharts";
 import type { CalculatorResult } from "@/lib/types";
-
-function formatEuro(value: number) {
-  return new Intl.NumberFormat("en-IE", {
-    style: "currency",
-    currency: "EUR",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
+import { formatEuro } from "@/lib/utils";
 
 export function ProjectionChart({ data }: { data: CalculatorResult["yearlyProjection"] }) {
   return (
@@ -25,12 +18,12 @@ export function ProjectionChart({ data }: { data: CalculatorResult["yearlyProjec
       <AreaChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id="potGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--color-primary, #4f46e5)" stopOpacity={0.35} />
-            <stop offset="100%" stopColor="var(--color-primary, #4f46e5)" stopOpacity={0.02} />
+            <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.35} />
+            <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0.02} />
           </linearGradient>
           <linearGradient id="contribGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#94a3b8" stopOpacity={0.3} />
-            <stop offset="100%" stopColor="#94a3b8" stopOpacity={0.02} />
+            <stop offset="0%" stopColor="var(--color-muted-foreground)" stopOpacity={0.3} />
+            <stop offset="100%" stopColor="var(--color-muted-foreground)" stopOpacity={0.02} />
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-border" />
@@ -52,14 +45,14 @@ export function ProjectionChart({ data }: { data: CalculatorResult["yearlyProjec
         <Area
           type="monotone"
           dataKey="contributions"
-          stroke="#94a3b8"
+          stroke="var(--color-muted-foreground)"
           fill="url(#contribGradient)"
           strokeWidth={1.5}
         />
         <Area
           type="monotone"
           dataKey="potValue"
-          stroke="#4f46e5"
+          stroke="var(--color-primary)"
           fill="url(#potGradient)"
           strokeWidth={2}
         />
