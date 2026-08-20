@@ -7,6 +7,9 @@ export const metadata: Metadata = {
 
 const LAST_UPDATED = "2026-08-19";
 
+const placeholder =
+  "rounded bg-amber-100 px-1 py-0.5 font-medium text-amber-900 dark:bg-amber-950 dark:text-amber-300";
+
 export default function PrivacyPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -28,9 +31,11 @@ export default function PrivacyPage() {
           <p>
             PensionIQ (&quot;we&quot;, &quot;us&quot;) is the data controller for
             information collected through this site. We are{" "}
-            <strong>[PLACEHOLDER: legal entity name and registered address]</strong>. For
-            any privacy question or to exercise your rights, contact{" "}
-            <strong>[PLACEHOLDER: privacy contact email]</strong>.
+            <strong className={placeholder}>
+              [PLACEHOLDER: legal entity name and registered address]
+            </strong>
+            . For any privacy question or to exercise your rights, contact{" "}
+            <strong className={placeholder}>[PLACEHOLDER: privacy contact email]</strong>.
           </p>
         </section>
 
@@ -79,7 +84,7 @@ export default function PrivacyPage() {
           <ul className="list-disc space-y-1 pl-5">
             <li>
               <strong>Supabase</strong> (database, authentication) —{" "}
-              <span>
+              <span className={placeholder}>
                 [PLACEHOLDER: confirm hosting region shown in your Supabase project
                 settings; Supabase offers EU-region hosting but this must be verified for
                 your specific project]
@@ -102,7 +107,7 @@ export default function PrivacyPage() {
                 Google&apos;s Gemini API terms
               </a>{" "}
               for how Google handles this data.{" "}
-              <span>
+              <span className={placeholder}>
                 [PLACEHOLDER: confirm and document the legal transfer mechanism you rely
                 on, e.g. EU-US Data Privacy Framework or Standard Contractual Clauses]
               </span>
@@ -132,7 +137,7 @@ export default function PrivacyPage() {
             <li>Data portability (your exported data is provided as machine-readable JSON)</li>
             <li>
               Lodge a complaint with your supervisory authority —{" "}
-              <span>
+              <span className={placeholder}>
                 [PLACEHOLDER: for Ireland, this is the{" "}
                 <a
                   href="https://www.dataprotection.ie"
@@ -151,9 +156,11 @@ export default function PrivacyPage() {
         <section>
           <h2 className="text-lg font-semibold">7. Data retention</h2>
           <p>
-            [PLACEHOLDER: define how long account data, and AI Suggestions logs (if any
-            are retained server-side), are kept, and the criteria used to determine that
-            period.]
+            <span className={placeholder}>
+              [PLACEHOLDER: define how long account data, and AI Suggestions logs (if any
+              are retained server-side), are kept, and the criteria used to determine that
+              period.]
+            </span>
           </p>
         </section>
 

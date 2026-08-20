@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { RiskBadge } from "@/components/funds/risk-badge";
+import { AssetClassBadge } from "@/components/funds/asset-class-badge";
 import type { Fund } from "@/lib/types";
 import { formatAmc } from "@/lib/utils";
 
@@ -15,7 +15,7 @@ export function FundCard({ fund }: { fund: Fund }) {
           {fund.name}
         </Link>
         <div className="flex flex-wrap gap-1.5 pt-1">
-          <Badge variant="outline">{fund.assetClass}</Badge>
+          <AssetClassBadge assetClass={fund.assetClass} />
           <RiskBadge risk={fund.riskRating} />
         </div>
       </CardHeader>

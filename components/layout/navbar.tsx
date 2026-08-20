@@ -69,6 +69,7 @@ export function Navbar() {
                 {user.name ?? user.email}
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem render={<Link href="/portfolio" />}>My portfolio</DropdownMenuItem>
                 <DropdownMenuItem render={<Link href="/settings" />}>Settings</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => signOut()}>Log out</DropdownMenuItem>
@@ -107,6 +108,9 @@ export function Navbar() {
               <div className="mt-4 flex flex-col gap-2 border-t pt-4">
                 {!loading && user ? (
                   <>
+                    <Link href="/portfolio" className="text-sm font-medium">
+                      My portfolio
+                    </Link>
                     <Link href="/settings" className="text-sm font-medium">
                       Settings
                     </Link>

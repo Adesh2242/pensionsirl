@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { PiggyBank, TrendingDown, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -189,22 +190,33 @@ export default function CalculatorPage() {
           <div className="grid gap-4 sm:grid-cols-3">
             <Card>
               <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">Projected pot at {input.retirementAge}</p>
-                <p className="mt-1 text-2xl font-semibold">{formatEuro(result.projectedPot)}</p>
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400">
+                  <PiggyBank className="h-4.5 w-4.5" aria-hidden />
+                </div>
+                <p className="mt-3 text-sm text-muted-foreground">Projected pot at {input.retirementAge}</p>
+                <p className="mt-1 text-2xl font-semibold text-blue-600 dark:text-blue-400">
+                  {formatEuro(result.projectedPot)}
+                </p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">Tax relief saved this year</p>
-                <p className="mt-1 text-2xl font-semibold text-emerald-600">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
+                  <TrendingUp className="h-4.5 w-4.5" aria-hidden />
+                </div>
+                <p className="mt-3 text-sm text-muted-foreground">Tax relief saved this year</p>
+                <p className="mt-1 text-2xl font-semibold text-emerald-600 dark:text-emerald-400">
                   {formatEuro(result.annualTaxReliefSaved)}
                 </p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">Estimated fees over time</p>
-                <p className="mt-1 text-2xl font-semibold text-red-600">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400">
+                  <TrendingDown className="h-4.5 w-4.5" aria-hidden />
+                </div>
+                <p className="mt-3 text-sm text-muted-foreground">Estimated fees over time</p>
+                <p className="mt-1 text-2xl font-semibold text-red-600 dark:text-red-400">
                   {formatEuro(result.totalFeesDrag)}
                 </p>
               </CardContent>

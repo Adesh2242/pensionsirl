@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
-import { fetchFundsFromSupabase, fetchProvidersFromSupabase } from "@/lib/supabase/funds-queries";
+import {
+  fetchFundsFromSupabase,
+  fetchLastScrapeTime,
+  fetchProvidersFromSupabase,
+} from "@/lib/supabase/funds-queries";
 import { funds as mockFunds, providers as mockProviders } from "@/lib/mock-data";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Fund, Provider } from "@/lib/types";
@@ -17,6 +21,7 @@ export function useFunds() {
   const [funds, setFunds] = useState<Fund[]>(mockFunds);
   const [providers, setProviders] = useState<Provider[]>(mockProviders);
   const [source, setSource] = useState<"mock" | "supabase">("mock");
+  const [lastScrapeTime, setLastScrapeTime] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
@@ -34,10 +39,16 @@ export function useFunds() {
         console.warn("Supabase funds query failed, staying on mock data:", error);
       });
 
+    fetchLastScrapeTime(supabase)
+      .then((time) => {
+        if (!cancelled) setLastScrapeTime(time);
+      })
+      .catch(() => {});
+
     return () => {
       cancelled = true;
     };
   }, []);
 
-  return { funds, providers, source };
+  return { funds, providers, source, lastScrapeTime };
 }

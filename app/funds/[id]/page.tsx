@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Coins, ShieldAlert } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { RiskBadge } from "@/components/funds/risk-badge";
-import { getAllFunds, getFundBySlug } from "@/lib/data/funds.server";
-import { formatAmc } from "@/lib/utils";
+import { RiskBadge, riskTextClass } from "@/components/funds/risk-badge";
+import { AssetClassBadge } from "@/components/funds/asset-class-badge";
+import { getAllFunds, getFundBySlug, getLastScrapeTime } from "@/lib/data/funds.server";
+import { formatAmc, formatLastUpdated } from "@/lib/utils";
 
 type Params = Promise<{ id: string }>;
 
@@ -34,6 +35,7 @@ export default async function FundDetailPage({ params }: { params: Params }) {
   // tenYearReturn is only ever set by the live scraper (mock data never sets
   // it), so its presence is a reliable signal for which disclaimer to show.
   const isLiveData = fund.tenYearReturn !== undefined;
+  const lastScrapeTime = isLiveData ? await getLastScrapeTime() : null;
 
   const returns = [
     { label: "1 year", value: fund.oneYearReturn },
@@ -57,7 +59,7 @@ export default async function FundDetailPage({ params }: { params: Params }) {
       <p className="text-sm text-muted-foreground">{fund.providerName}</p>
       <h1 className="mt-1 text-3xl font-semibold tracking-tight">{fund.name}</h1>
       <div className="mt-3 flex flex-wrap gap-2">
-        <Badge variant="outline">{fund.assetClass}</Badge>
+        <AssetClassBadge assetClass={fund.assetClass} />
         <RiskBadge risk={fund.riskRating} />
         {fund.sfdrArticle && <Badge variant="outline">SFDR Article {fund.sfdrArticle}</Badge>}
         {fund.manager && <Badge variant="outline">Managed by {fund.manager}</Badge>}
@@ -68,7 +70,10 @@ export default async function FundDetailPage({ params }: { params: Params }) {
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Charges</CardTitle>
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400">
+              <Coins className="h-4.5 w-4.5" aria-hidden />
+            </div>
+            <CardTitle className="mt-2 text-base">Charges</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-semibold">{formatAmc(fund.amc)}</p>
@@ -81,10 +86,17 @@ export default async function FundDetailPage({ params }: { params: Params }) {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Risk rating</CardTitle>
+            <div
+              className={`flex h-9 w-9 items-center justify-center rounded-lg bg-current/10 ${riskTextClass(fund.riskRating)}`}
+            >
+              <ShieldAlert className="h-4.5 w-4.5" aria-hidden />
+            </div>
+            <CardTitle className="mt-2 text-base">Risk rating</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-semibold">{fund.riskRating}/7</p>
+            <p className={`text-3xl font-semibold ${riskTextClass(fund.riskRating)}`}>
+              {fund.riskRating}/7
+            </p>
             <p className="text-sm text-muted-foreground">
               Industry-standard SRI scale, 1 (lowest) to 7 (highest)
             </p>
@@ -114,12 +126,21 @@ export default async function FundDetailPage({ params }: { params: Params }) {
             {isLiveData
               ? "1yr/5yr/10yr sourced from the National Pension Helpline fund explorer; the 3yr figure is interpolated (not separately published) — see How it Works."
               : "These figures are illustrative, generated from the fund's real risk rating — not live NAV or return data. Live performance requires the scraper integration described in TODO.md."}
+            {isLiveData && lastScrapeTime && (
+              <> Fund data last updated {formatLastUpdated(lastScrapeTime)} UTC.</>
+            )}
           </p>
         </CardContent>
       </Card>
 
-      <div className="mt-8 flex gap-3">
-        <Link href={`/compare?funds=${fund.slug}`} className={buttonVariants()}>
+      <div className="mt-8 flex flex-wrap gap-3">
+        <Link href={`/portfolio?add=${fund.slug}`} className={buttonVariants()}>
+          Track this fund
+        </Link>
+        <Link
+          href={`/compare?funds=${fund.slug}`}
+          className={buttonVariants({ variant: "outline" })}
+        >
           Add to compare
         </Link>
         <Link

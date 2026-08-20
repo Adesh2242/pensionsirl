@@ -51,6 +51,17 @@ export interface UserProfile {
   savedFundIds: string[];
 }
 
+export interface TrackedFund {
+  id: string;
+  fundSlug: string;
+  startValue: number;
+  monthlyContribution: number;
+  /** ISO date (YYYY-MM-DD) the user started tracking this holding. */
+  startedAt: string;
+  /** ISO datetime the user last saw/acknowledged an update for this holding. */
+  lastSeenAt: string;
+}
+
 export interface CalculatorInput {
   currentAge: number;
   retirementAge: number;

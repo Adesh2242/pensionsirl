@@ -117,3 +117,16 @@ export async function fetchProvidersFromSupabase(client: SupabaseClient): Promis
     realFundCount: researchedProviders.find((r) => r.slug === p.slug)?.realFundCount ?? 0,
   }));
 }
+
+/** Timestamp of the most recent successful scripts/scrape-funds.ts run, or null if there isn't one (mock mode, migration not applied, or the scraper hasn't run yet). */
+export async function fetchLastScrapeTime(client: SupabaseClient): Promise<string | null> {
+  const { data, error } = await client
+    .from("scrape_log")
+    .select("finished_at")
+    .eq("status", "success")
+    .order("finished_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as { finished_at: string } | null)?.finished_at ?? null;
+}

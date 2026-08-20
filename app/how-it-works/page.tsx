@@ -1,5 +1,6 @@
 import { providers } from "@/lib/mock-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { hueForName } from "@/lib/color-hash";
 
 export const metadata = {
   title: "How it Works",
@@ -49,9 +50,17 @@ export default function HowItWorksPage() {
       <h2 className="mt-10 text-xl font-semibold tracking-tight">Providers covered</h2>
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
         {providers.map((p) => (
-          <div key={p.slug} className="rounded-lg border p-3 text-sm">
-            <p className="font-medium">{p.name}</p>
-            <p className="text-xs text-muted-foreground">{p.realFundCount} funds (real count)</p>
+          <div key={p.slug} className="flex items-center gap-3 rounded-lg border p-3 text-sm">
+            <div
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${hueForName(p.name)}`}
+              aria-hidden
+            >
+              {p.name[0]}
+            </div>
+            <div>
+              <p className="font-medium">{p.name}</p>
+              <p className="text-xs text-muted-foreground">{p.realFundCount} funds (real count)</p>
+            </div>
           </div>
         ))}
       </div>

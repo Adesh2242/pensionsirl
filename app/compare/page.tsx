@@ -3,8 +3,9 @@
 import { Suspense, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Scale, X } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -13,10 +14,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RiskBadge } from "@/components/funds/risk-badge";
+import { AssetClassBadge } from "@/components/funds/asset-class-badge";
 import { useFunds } from "@/lib/hooks/use-funds";
 import { formatAmc } from "@/lib/utils";
 
 const MAX_COMPARE = 4;
+
+function ReturnValue({ value }: { value: number }) {
+  return (
+    <span className={value >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}>
+      {value >= 0 ? "+" : ""}
+      {value.toFixed(1)}%
+    </span>
+  );
+}
 
 function useSelectedSlugs() {
   const searchParams = useSearchParams();
@@ -57,21 +68,12 @@ function ComparePage() {
 
   const rows: { label: string; render: (f: (typeof funds)[number]) => React.ReactNode }[] = [
     { label: "Provider", render: (f) => f.providerName },
-    { label: "Asset class", render: (f) => f.assetClass },
+    { label: "Asset class", render: (f) => <AssetClassBadge assetClass={f.assetClass} /> },
     { label: "Risk rating", render: (f) => <RiskBadge risk={f.riskRating} /> },
     { label: "AMC", render: (f) => formatAmc(f.amc) },
-    {
-      label: "1yr return",
-      render: (f) => `${f.oneYearReturn >= 0 ? "+" : ""}${f.oneYearReturn.toFixed(1)}%`,
-    },
-    {
-      label: "3yr return (ann.)",
-      render: (f) => `${f.threeYearReturn >= 0 ? "+" : ""}${f.threeYearReturn.toFixed(1)}%`,
-    },
-    {
-      label: "5yr return (ann.)",
-      render: (f) => `${f.fiveYearReturn >= 0 ? "+" : ""}${f.fiveYearReturn.toFixed(1)}%`,
-    },
+    { label: "1yr return", render: (f) => <ReturnValue value={f.oneYearReturn} /> },
+    { label: "3yr return (ann.)", render: (f) => <ReturnValue value={f.threeYearReturn} /> },
+    { label: "5yr return (ann.)", render: (f) => <ReturnValue value={f.fiveYearReturn} /> },
     { label: "Manager", render: (f) => f.manager ?? "—" },
   ];
 
@@ -83,15 +85,23 @@ function ComparePage() {
         URL, so you can share this comparison.
       </p>
 
-      <div className="mt-6 max-w-sm">
+      <div className="mt-6 max-w-sm space-y-1.5">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="add-fund" className="text-xs text-muted-foreground">
+            Add a fund
+          </Label>
+          <span className="text-xs text-muted-foreground">
+            {slugs.length}/{MAX_COMPARE} selected
+          </span>
+        </div>
         <Select
           onValueChange={(v: string | null) => v && addFund(v)}
           disabled={slugs.length >= MAX_COMPARE}
         >
-          <SelectTrigger>
+          <SelectTrigger id="add-fund" className="w-full">
             <SelectValue
               placeholder={
-                slugs.length >= MAX_COMPARE ? `Maximum ${MAX_COMPARE} funds` : "Add a fund…"
+                slugs.length >= MAX_COMPARE ? `Maximum ${MAX_COMPARE} funds` : "Choose a fund…"
               }
             />
           </SelectTrigger>
@@ -106,13 +116,15 @@ function ComparePage() {
       </div>
 
       {selectedFunds.length === 0 ? (
-        <p className="mt-8 rounded-lg border border-dashed p-12 text-center text-muted-foreground">
-          No funds selected yet. Add funds above, or{" "}
-          <Link href="/funds" className="underline underline-offset-2">
-            browse the fund explorer
+        <div className="mt-8 flex flex-col items-center gap-3 rounded-lg border border-dashed p-12 text-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-100 text-teal-600 dark:bg-teal-950 dark:text-teal-400">
+            <Scale className="h-5 w-5" aria-hidden />
+          </div>
+          <p className="text-muted-foreground">No funds selected yet. Add up to {MAX_COMPARE} above to compare them side-by-side.</p>
+          <Link href="/funds" className={buttonVariants({ variant: "outline", size: "sm" })}>
+            Browse the fund explorer
           </Link>
-          .
-        </p>
+        </div>
       ) : (
         <div className="mt-8 overflow-x-auto">
           <table className="w-full border-collapse text-sm">
