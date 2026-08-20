@@ -86,6 +86,36 @@ by `002_scraper_support.sql` via `supabase db push` or the SQL Editor. This crea
 Once applied, run `pnpm scrape:funds` (needs `SUPABASE_SERVICE_ROLE_KEY`) to populate
 real fund data — the fund pages pick it up automatically, no code changes needed.
 
+## Deployment (Netlify)
+
+Connect the repo through the Netlify dashboard and deploy — no `netlify.toml` needed.
+Netlify's official guidance is to rely on its zero-config Next.js detection rather than
+pinning the adapter plugin yourself, since pinning blocks automatic adapter updates.
+
+Set the same variables as above (**Settings → Environment variables**) for the
+production site, plus:
+
+| Variable | Purpose |
+|---|---|
+| `NEXT_PUBLIC_SITE_URL` | Set to your real Netlify/custom domain, not the default in `lib/site.ts` |
+
+**Two things worth knowing before you deploy:**
+
+- **`proxy.ts`** (this app's route-protection file — Next.js 16 renamed
+  `middleware.ts` to `proxy.ts`) is supported on Netlify: their Next.js Runtime
+  (v5, actively maintained for Next.js 13.5+) implements it via Edge Functions,
+  and Netlify [announced Next.js 16 support](https://www.netlify.com/changelog/next-js-16-deploy-on-netlify/)
+  with no required config changes. The only stated Node.js-middleware limitations
+  are no filesystem access and no C++ addons — `proxy.ts` here only touches
+  cookies via `lib/supabase/middleware.ts`, so it's within that envelope. Still
+  worth confirming with a real deploy, since this couldn't be verified by
+  reading the code alone.
+- **Set `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` in production.**
+  Without them, `lib/rate-limit.ts` falls back to an in-memory `Map`, which
+  doesn't persist reliably across Netlify's serverless function invocations —
+  the AI route's 20-requests/hour limit would be unreliable without durable
+  (Upstash) rate limiting.
+
 ## Project Structure
 
 | Purpose | File(s) |
