@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth-context";
 import { createClient } from "@/lib/supabase/client";
 import { readConsent } from "@/lib/consent";
+import { listTrackedFunds } from "@/lib/portfolio/store";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -26,6 +27,8 @@ export default function SettingsPage() {
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -37,12 +40,27 @@ export default function SettingsPage() {
     return <div className="mx-auto max-w-2xl px-4 py-10 text-muted-foreground">Loading…</div>;
   }
 
-  function exportData() {
+  async function exportData() {
+    if (!user) return;
+    setExporting(true);
+    setExportError(null);
     const consent = readConsent();
+    let trackedFunds: Awaited<ReturnType<typeof listTrackedFunds>> = [];
+    try {
+      const supabase = createClient();
+      trackedFunds = await listTrackedFunds(supabase, user.id);
+    } catch (err) {
+      setExportError(
+        err instanceof Error
+          ? `Couldn't include tracked funds: ${err.message}`
+          : "Couldn't include tracked funds in this export.",
+      );
+    }
     const payload = {
       exportedAt: new Date().toISOString(),
       user,
       cookieConsent: consent,
+      trackedFunds,
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -51,6 +69,7 @@ export default function SettingsPage() {
     a.download = "pensioniq-my-data.json";
     a.click();
     URL.revokeObjectURL(url);
+    setExporting(false);
   }
 
   async function deleteAccount() {
@@ -110,11 +129,14 @@ export default function SettingsPage() {
           <CardTitle className="text-base">Your data (GDPR)</CardTitle>
           <CardDescription>Export everything we hold about you, or delete your account.</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-3">
-          <Button variant="outline" onClick={exportData}>
-            <Download className="h-4 w-4" />
-            Export my data
-          </Button>
+        <CardContent className="flex flex-wrap items-start gap-3">
+          <div>
+            <Button variant="outline" onClick={exportData} disabled={exporting}>
+              <Download className="h-4 w-4" />
+              {exporting ? "Exporting…" : "Export my data"}
+            </Button>
+            {exportError && <p className="mt-2 text-xs text-red-600">{exportError}</p>}
+          </div>
           <Button variant="destructive" onClick={() => setConfirmOpen(true)}>
             <TriangleAlert className="h-4 w-4" />
             Delete account
