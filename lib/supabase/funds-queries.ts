@@ -29,10 +29,11 @@ interface FundRowWithId extends FundRow {
 }
 
 /**
- * The live scrape source only publishes 1yr/5yr/10yr returns, not 3yr. This
- * linearly interpolates a 3yr figure so existing UI (compare table, fund
- * detail page, calculator) doesn't need a separate "no data" state — treat
- * it as an estimate, not an observed figure.
+ * Fallback only: scripts/scrape-funds.ts now writes a real 3yr return for
+ * every fund, sourced directly from the scrape source. This just covers rows
+ * written before that (or any future fund missing one) so existing UI
+ * (compare table, fund detail page, calculator) doesn't need a separate
+ * "no data" state — treat the result as an estimate, not an observed figure.
  */
 function interpolateThreeYear(oneYear: number | null, fiveYear: number | null): number {
   if (oneYear === null && fiveYear === null) return 0;
