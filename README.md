@@ -29,10 +29,12 @@ The app runs against **real Gemini and Supabase auth** when `.env.local` is popu
   plain text (no markdown) since the chat UI intentionally doesn't use
   `dangerouslySetInnerHTML`. The AI Suggestions page discloses upfront that messages are
   sent to Google.
-- **Fund scraper**: `scripts/scrape-funds.ts` (Playwright — the source renders fund
-  tables client-side, so a plain HTTP fetch can't see them), scheduled via
-  `.github/workflows/scrape-funds.yml`. Verified against the live site
-  (`pnpm scrape:funds --dry-run`): 136 real funds across all 10 providers.
+- **Fund scraper**: `scripts/scrape-funds.ts` — a plain `fetch()` against each
+  provider page's Next.js React Server Component payload (`/​{slug}.txt`), which
+  embeds the same structured fund data the page renders from, no headless
+  browser needed. Scheduled via `.github/workflows/scrape-funds.yml`. Verified
+  against the live site (`pnpm scrape:funds --dry-run`): 388 real funds across
+  all 10 providers, in under 2 seconds.
 - **Security**: static CSP + standard security headers (`next.config.ts`), same-origin
   check on the AI route, durable rate limiting (`lib/rate-limit.ts` — Upstash Redis when
   configured, in-memory sliding window otherwise), `error.tsx`/`global-error.tsx`

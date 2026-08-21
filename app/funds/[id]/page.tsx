@@ -39,7 +39,7 @@ export default async function FundDetailPage({ params }: { params: Params }) {
 
   const returns = [
     { label: "1 year", value: fund.oneYearReturn },
-    { label: isLiveData ? "3 years (interpolated)" : "3 years (annualised)", value: fund.threeYearReturn },
+    { label: "3 years (annualised)", value: fund.threeYearReturn },
     { label: "5 years (annualised)", value: fund.fiveYearReturn },
     ...(fund.tenYearReturn !== undefined
       ? [{ label: "10 years (annualised)", value: fund.tenYearReturn }]
@@ -124,7 +124,7 @@ export default async function FundDetailPage({ params }: { params: Params }) {
           </div>
           <p className="mt-4 text-xs text-muted-foreground">
             {isLiveData
-              ? "1yr/5yr/10yr sourced from the National Pension Helpline fund explorer; the 3yr figure is interpolated (not separately published) — see How it Works."
+              ? "1yr/3yr/5yr/10yr sourced from the National Pension Helpline fund explorer — see How it Works."
               : "These figures are illustrative, generated from the fund's real risk rating — not live NAV or return data. Live performance requires the scraper integration described in TODO.md."}
             {isLiveData && lastScrapeTime && (
               <> Fund data last updated {formatLastUpdated(lastScrapeTime)} UTC.</>

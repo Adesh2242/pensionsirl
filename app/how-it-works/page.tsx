@@ -10,7 +10,7 @@ export const metadata = {
 const faqs = [
   {
     q: "Where does the fund data come from?",
-    a: "Provider names, fund names, asset classes and risk ratings are sourced from each provider's public fund centre and the National Pension Helpline fund explorer (funds.nationalpensionhelpline.ie). Live daily NAV and return data requires the scraper described in TODO.md and isn't wired up yet — so 1/3/5-year return figures shown are illustrative, generated from each fund's real risk rating rather than live performance.",
+    a: "Provider names, fund names, asset classes, risk ratings, and 1/3/5/10-year return figures are sourced weekly from each provider's public fund centre and the National Pension Helpline fund explorer (funds.nationalpensionhelpline.ie) via scripts/scrape-funds.ts. NAV isn't published by this source — only returns are.",
   },
   {
     q: "How is the tax relief calculated?",
