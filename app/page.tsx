@@ -1,9 +1,28 @@
 import Link from "next/link";
-import { ArrowRight, Calculator, Scale, Search, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  Building2,
+  Calculator,
+  CalendarClock,
+  Landmark,
+  Lock,
+  Scale,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Wallet,
+} from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getAllFunds, getAllProviders } from "@/lib/data/funds.server";
+import { getAllFunds, getAllProviders, getLastScrapeTime } from "@/lib/data/funds.server";
 import { hueForName } from "@/lib/color-hash";
+import { formatLastUpdated } from "@/lib/utils";
+
+const trustSignals = [
+  { icon: Lock, label: "Free, no account needed to browse" },
+  { icon: Landmark, label: "Sourced from official provider fund centres" },
+  { icon: ShieldCheck, label: "Not regulated financial advice — for research only" },
+];
 
 const features = [
   {
@@ -37,7 +56,32 @@ const features = [
 ];
 
 export default async function Home() {
-  const [funds, providers] = await Promise.all([getAllFunds(), getAllProviders()]);
+  const [funds, providers, lastScrapeTime] = await Promise.all([
+    getAllFunds(),
+    getAllProviders(),
+    getLastScrapeTime(),
+  ]);
+
+  const stats = [
+    {
+      icon: Wallet,
+      value: String(funds.length),
+      label: "Funds tracked",
+      color: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
+    },
+    {
+      icon: Building2,
+      value: String(providers.length),
+      label: "Irish providers",
+      color: "bg-teal-100 text-teal-600 dark:bg-teal-950 dark:text-teal-400",
+    },
+    {
+      icon: CalendarClock,
+      value: lastScrapeTime ? formatLastUpdated(lastScrapeTime)!.split(",")[0] : "Weekly",
+      label: "Fund data refreshed",
+      color: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
+    },
+  ];
 
   return (
     <div className="flex flex-col">
@@ -60,10 +104,31 @@ export default async function Home() {
               Try the calculator
             </Link>
           </div>
-          <p className="mt-6 text-sm text-muted-foreground">
-            {funds.length} curated funds across {providers.length} providers · Free, no
-            account needed to browse
-          </p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            {trustSignals.map((t) => (
+              <span
+                key={t.label}
+                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
+              >
+                <t.icon className="h-3.5 w-3.5" aria-hidden />
+                {t.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b">
+        <div className="mx-auto grid max-w-3xl grid-cols-3 gap-4 px-4 py-10">
+          {stats.map((stat) => (
+            <div key={stat.label} className="flex flex-col items-center text-center">
+              <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${stat.color}`}>
+                <stat.icon className="h-5 w-5" aria-hidden />
+              </div>
+              <p className="mt-2 text-2xl font-semibold tracking-tight">{stat.value}</p>
+              <p className="text-xs text-muted-foreground">{stat.label}</p>
+            </div>
+          ))}
         </div>
       </section>
 
