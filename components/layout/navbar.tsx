@@ -1,11 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, PiggyBank } from "lucide-react";
+import { LogOut, Menu, PiggyBank, Settings, Wallet } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetHeader,
   SheetTitle,
@@ -19,7 +21,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { useAuth } from "@/lib/auth-context";
+import { cn } from "@/lib/utils";
 
 const links = [
   { href: "/funds", label: "Funds" },
@@ -29,112 +33,202 @@ const links = [
   { href: "/how-it-works", label: "How it Works" },
 ];
 
+export function Brand({ className }: { className?: string }) {
+  return (
+    <span className={cn("flex items-center gap-2.5", className)}>
+      <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-soft">
+        <PiggyBank className="h-4.5 w-4.5" aria-hidden />
+      </span>
+      <span className="text-[0.975rem] font-semibold tracking-tight">PensionIQ</span>
+    </span>
+  );
+}
+
 export function Navbar() {
   const pathname = usePathname();
   const { user, loading, signOut } = useAuth();
+  const [scrolled, setScrolled] = useState(false);
+
+  // The header starts flush with the hero and only grows a border/shadow once
+  // content is scrolling underneath it.
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const initial = (user?.name ?? user?.email ?? "?")[0]?.toUpperCase();
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2 font-semibold">
-          <PiggyBank className="h-5 w-5 text-primary" aria-hidden />
-          <span>PensionIQ</span>
+    <header
+      className={cn(
+        "sticky top-0 z-40 transition-shadow duration-200",
+        "bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/65",
+        scrolled ? "border-b shadow-soft" : "border-b border-transparent",
+      )}
+    >
+      <div className="container-page flex h-16 items-center justify-between gap-4">
+        <Link href="/" className="rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+          <Brand />
         </Link>
 
-        <nav className="hidden items-center gap-6 md:flex">
-          {links.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`text-sm transition-colors hover:text-foreground ${
-                pathname?.startsWith(link.href) ? "font-medium text-foreground" : "text-muted-foreground"
-              }`}
-            >
-              {link.label}
-            </Link>
-          ))}
+        <nav className="hidden items-center gap-1 md:flex">
+          {links.map((link) => {
+            const active = pathname === link.href || pathname?.startsWith(`${link.href}/`);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "rounded-lg px-3 py-1.5 text-sm transition-colors",
+                  active
+                    ? "bg-accent font-medium text-accent-foreground"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </nav>
 
-        <div className="hidden items-center gap-2 md:flex">
-          {!loading && user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={<Button variant="ghost" size="sm" className="gap-2" />}
-              >
-                <Avatar className="h-6 w-6">
-                  <AvatarFallback className="text-xs">
-                    {(user.name ?? user.email)[0]?.toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                {user.name ?? user.email}
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem render={<Link href="/portfolio" />}>My portfolio</DropdownMenuItem>
-                <DropdownMenuItem render={<Link href="/settings" />}>Settings</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => signOut()}>Log out</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <>
-              <Link href="/login" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-                Log in
-              </Link>
-              <Link href="/signup" className={buttonVariants({ size: "sm" })}>
-                Sign up
-              </Link>
-            </>
-          )}
-        </div>
-
-        <Sheet>
-          <SheetTrigger
-            render={
-              <Button variant="ghost" size="icon" className="md:hidden" aria-label="Open menu" />
-            }
-          >
-            <Menu className="h-5 w-5" />
-          </SheetTrigger>
-          <SheetContent side="right">
-            <SheetHeader>
-              <SheetTitle>Menu</SheetTitle>
-            </SheetHeader>
-            <nav className="flex flex-col gap-4 px-4">
-              {links.map((link) => (
-                <Link key={link.href} href={link.href} className="text-sm font-medium">
-                  {link.label}
+        <div className="flex items-center gap-1.5">
+          <ThemeToggle />
+          <div className="hidden items-center gap-2 md:flex">
+            {!loading && user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={<Button variant="ghost" size="sm" className="gap-2 pl-1" />}
+                >
+                  <Avatar className="h-6 w-6">
+                    <AvatarFallback className="bg-primary/12 text-xs font-semibold text-primary">
+                      {initial}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="max-w-[12ch] truncate">{user.name ?? user.email}</span>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-48">
+                  <DropdownMenuItem render={<Link href="/portfolio" />}>
+                    <Wallet className="h-4 w-4" aria-hidden />
+                    My portfolio
+                  </DropdownMenuItem>
+                  <DropdownMenuItem render={<Link href="/settings" />}>
+                    <Settings className="h-4 w-4" aria-hidden />
+                    Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => signOut()}>
+                    <LogOut className="h-4 w-4" aria-hidden />
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <>
+                <Link href="/login" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+                  Log in
                 </Link>
-              ))}
-              <div className="mt-4 flex flex-col gap-2 border-t pt-4">
-                {!loading && user ? (
-                  <>
-                    <Link href="/portfolio" className="text-sm font-medium">
-                      My portfolio
-                    </Link>
-                    <Link href="/settings" className="text-sm font-medium">
-                      Settings
-                    </Link>
-                    <button
-                      onClick={() => signOut()}
-                      className="text-left text-sm font-medium text-muted-foreground"
+                <Link href="/signup" className={buttonVariants({ size: "sm" })}>
+                  Sign up
+                </Link>
+              </>
+            )}
+          </div>
+
+          <Sheet>
+            <SheetTrigger
+              render={
+                <Button variant="ghost" size="icon-sm" className="md:hidden" aria-label="Open menu" />
+              }
+            >
+              <Menu className="h-5 w-5" />
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[min(20rem,85vw)]">
+              <SheetHeader>
+                <SheetTitle className="text-left">
+                  <Brand />
+                </SheetTitle>
+              </SheetHeader>
+              <nav className="flex flex-col gap-1 px-4">
+                {links.map((link) => {
+                  const active = pathname === link.href || pathname?.startsWith(`${link.href}/`);
+                  return (
+                    <SheetClose
+                      key={link.href}
+                      nativeButton={false}
+                      render={
+                        <Link
+                          href={link.href}
+                          className={cn(
+                            "rounded-lg px-3 py-2.5 text-sm transition-colors",
+                            active
+                              ? "bg-accent font-medium text-accent-foreground"
+                              : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                          )}
+                        />
+                      }
                     >
-                      Log out
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <Link href="/login" className="text-sm font-medium">
-                      Log in
-                    </Link>
-                    <Link href="/signup" className="text-sm font-medium">
-                      Sign up
-                    </Link>
-                  </>
-                )}
-              </div>
-            </nav>
-          </SheetContent>
-        </Sheet>
+                      {link.label}
+                    </SheetClose>
+                  );
+                })}
+                <div className="mt-3 flex flex-col gap-2 border-t pt-4">
+                  {!loading && user ? (
+                    <>
+                      <SheetClose
+                        nativeButton={false}
+                        render={
+                          <Link
+                            href="/portfolio"
+                            className="rounded-lg px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+                          />
+                        }
+                      >
+                        My portfolio
+                      </SheetClose>
+                      <SheetClose
+                        nativeButton={false}
+                        render={
+                          <Link
+                            href="/settings"
+                            className="rounded-lg px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+                          />
+                        }
+                      >
+                        Settings
+                      </SheetClose>
+                      <Button variant="outline" size="sm" onClick={() => signOut()}>
+                        Log out
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <SheetClose
+                        nativeButton={false}
+                        render={
+                          <Link
+                            href="/login"
+                            className={buttonVariants({ variant: "outline", size: "lg" })}
+                          />
+                        }
+                      >
+                        Log in
+                      </SheetClose>
+                      <SheetClose
+                        nativeButton={false}
+                        render={<Link href="/signup" className={buttonVariants({ size: "lg" })} />}
+                      >
+                        Sign up
+                      </SheetClose>
+                    </>
+                  )}
+                </div>
+              </nav>
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
     </header>
   );

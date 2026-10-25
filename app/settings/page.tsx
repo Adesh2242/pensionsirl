@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Download, TriangleAlert } from "lucide-react";
+import { Download, Mail, TriangleAlert, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
@@ -19,6 +19,8 @@ import { useAuth } from "@/lib/auth-context";
 import { createClient } from "@/lib/supabase/client";
 import { readConsent } from "@/lib/consent";
 import { listTrackedFunds } from "@/lib/portfolio/store";
+import { PageHeader } from "@/components/layout/page-header";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -37,7 +39,14 @@ export default function SettingsPage() {
   }, [loading, user, router]);
 
   if (loading || !user) {
-    return <div className="mx-auto max-w-2xl px-4 py-10 text-muted-foreground">Loading…</div>;
+    return (
+      <div className="container-page max-w-2xl py-12">
+        <Skeleton className="h-9 w-40" />
+        <Skeleton className="mt-3 h-5 w-72" />
+        <Skeleton className="mt-8 h-44 rounded-xl" />
+        <Skeleton className="mt-6 h-40 rounded-xl" />
+      </div>
+    );
   }
 
   async function exportData() {
@@ -96,35 +105,47 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
-      <p className="mt-2 text-muted-foreground">Manage your account and your data.</p>
+    <>
+      <PageHeader title="Settings" description="Manage your account and your data." />
 
-      <Card className="mt-8">
-        <CardHeader>
+      <div className="container-page max-w-2xl py-10">
+      <Card className="shadow-soft">
+        <CardHeader className="border-b">
           <CardTitle className="text-base">Profile</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          <p>
-            <span className="text-muted-foreground">Name: </span>
-            {user.name ?? "—"}
-          </p>
-          <p>
-            <span className="text-muted-foreground">Email: </span>
-            {user.email}
-          </p>
+        <CardContent className="pt-5 text-sm">
+          <dl className="space-y-3">
+            <div className="flex items-center gap-3">
+              <span className="icon-tile size-9 text-muted-foreground">
+                <User className="h-4 w-4" aria-hidden />
+              </span>
+              <div>
+                <dt className="text-xs text-muted-foreground">Name</dt>
+                <dd className="font-medium">{user.name ?? "—"}</dd>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="icon-tile size-9 text-muted-foreground">
+                <Mail className="h-4 w-4" aria-hidden />
+              </span>
+              <div className="min-w-0">
+                <dt className="text-xs text-muted-foreground">Email</dt>
+                <dd className="truncate font-medium">{user.email}</dd>
+              </div>
+            </div>
+          </dl>
           {isMockMode && (
-            <p className="mt-2 text-xs text-muted-foreground">
+            <p className="mt-4 rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
               Demo mode: your account only exists in this browser&apos;s local storage.
             </p>
           )}
-          <Button variant="outline" size="sm" className="mt-2" onClick={() => signOut()}>
+          <Button variant="outline" size="sm" className="mt-4" onClick={() => signOut()}>
             Log out
           </Button>
         </CardContent>
       </Card>
 
-      <Card className="mt-6">
+      <Card className="mt-6 shadow-soft">
         <CardHeader>
           <CardTitle className="text-base">Your data (GDPR)</CardTitle>
           <CardDescription>Export everything we hold about you, or delete your account.</CardDescription>
@@ -135,7 +156,7 @@ export default function SettingsPage() {
               <Download className="h-4 w-4" />
               {exporting ? "Exporting…" : "Export my data"}
             </Button>
-            {exportError && <p className="mt-2 text-xs text-red-600">{exportError}</p>}
+            {exportError && <p className="mt-2 text-xs text-destructive">{exportError}</p>}
           </div>
           <Button variant="destructive" onClick={() => setConfirmOpen(true)}>
             <TriangleAlert className="h-4 w-4" />
@@ -162,7 +183,7 @@ export default function SettingsPage() {
               placeholder="DELETE"
             />
           </div>
-          {deleteError && <p className="text-sm text-red-600">{deleteError}</p>}
+          {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>
               Cancel
@@ -177,6 +198,7 @@ export default function SettingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </>
   );
 }

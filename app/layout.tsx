@@ -1,10 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { CookieBanner } from "@/components/layout/cookie-banner";
+import { ThemeScript } from "@/components/theme/theme-script";
 import { SITE_URL } from "@/lib/site";
 
 const geistSans = Geist({
@@ -42,6 +43,7 @@ export const metadata: Metadata = {
     locale: "en_IE",
     type: "website",
   },
+  appleWebApp: { title: "PensionIQ" },
   twitter: {
     card: "summary_large_image",
     title: "PensionIQ — Irish Pension Fund Explorer & Retirement Calculator",
@@ -50,16 +52,36 @@ export const metadata: Metadata = {
   },
 };
 
+// Matches the light/dark --background tokens so mobile browser chrome blends in.
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fbfdff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0e131b" },
+  ],
+};
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en-IE"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <ThemeScript />
+      </head>
       <body className="flex min-h-full flex-col">
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground"
+        >
+          Skip to content
+        </a>
         <AuthProvider>
           <Navbar />
-          <main className="flex-1">{children}</main>
+          <main id="main" className="flex-1">
+            {children}
+          </main>
           <Footer />
           <CookieBanner />
         </AuthProvider>

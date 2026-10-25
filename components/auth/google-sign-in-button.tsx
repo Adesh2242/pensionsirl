@@ -46,7 +46,8 @@ export function GoogleSignInButton() {
     <Button
       type="button"
       variant="outline"
-      className="w-full"
+      size="lg"
+      className="h-10 w-full"
       disabled={!configured || loading}
       title={configured ? undefined : "Available once Supabase is connected"}
       onClick={handleClick}

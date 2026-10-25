@@ -3,11 +3,12 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { AuthShell } from "@/components/auth/auth-shell";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 
@@ -34,57 +35,64 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[70vh] max-w-md items-center px-4 py-10">
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Log in</CardTitle>
-          <CardDescription>
-            {isSupabaseConfigured()
-              ? "Welcome back to PensionIQ."
-              : "Demo mode — accounts are stored in your browser only."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <GoogleSignInButton />
-          <div className="my-4 flex items-center gap-3">
-            <Separator className="flex-1" />
-            <span className="text-xs text-muted-foreground">or</span>
-            <Separator className="flex-1" />
-          </div>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            {error && <p className="text-sm text-red-600">{error}</p>}
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Logging in…" : "Log in"}
-            </Button>
-          </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{" "}
-            <Link href="/signup" className="underline underline-offset-2">
-              Sign up
-            </Link>
+    <AuthShell
+      title="Welcome back"
+      description={
+        isSupabaseConfigured()
+          ? "Log in to your PensionIQ account."
+          : "Demo mode — accounts are stored in your browser only."
+      }
+      footer={
+        <>
+          Don&apos;t have an account?{" "}
+          <Link href="/signup" className="font-medium text-foreground underline underline-offset-4 hover:text-primary">
+            Sign up
+          </Link>
+        </>
+      }
+    >
+      <GoogleSignInButton />
+      <div className="my-5 flex items-center gap-3">
+        <Separator className="flex-1" />
+        <span className="text-xs text-muted-foreground">or continue with email</span>
+        <Separator className="flex-1" />
+      </div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.ie"
+            className="h-10"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            className="h-10"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
+        {error && (
+          <p className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            {error}
           </p>
-        </CardContent>
-      </Card>
-    </div>
+        )}
+        <Button type="submit" size="lg" className="h-10 w-full" disabled={loading}>
+          {loading ? "Logging in…" : "Log in"}
+        </Button>
+      </form>
+    </AuthShell>
   );
 }

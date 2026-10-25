@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Send, Sparkles } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowRight, Send, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,12 @@ export function ChatInterface() {
   const [loading, setLoading] = useState(false);
   const [source, setSource] = useState<"mock" | "gemini" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const endRef = useRef<HTMLDivElement>(null);
+
+  // Keep the newest reply in view as the conversation grows.
+  useEffect(() => {
+    if (messages.length) endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages, loading]);
 
   async function send(text: string) {
     const trimmed = text.trim();
@@ -59,46 +65,83 @@ export function ChatInterface() {
         </Badge>
       )}
 
-      <Card>
-        <CardContent className="flex min-h-[320px] flex-col gap-4 pt-6">
+      <Card className="shadow-soft">
+        <CardContent className="flex min-h-[26rem] flex-col gap-4 pt-2">
           {messages.length === 0 ? (
-            <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center text-muted-foreground">
-              <Sparkles className="h-8 w-8 text-primary" />
-              <p>Describe your risk appetite and goals to get fund suggestions.</p>
-              <div className="flex flex-wrap justify-center gap-2">
-                {STARTERS.map((s) => (
+            <div className="flex flex-1 flex-col items-center justify-center gap-5 py-8 text-center">
+              <div className="icon-tile size-14 text-chart-5">
+                <Sparkles className="h-6 w-6" aria-hidden />
+              </div>
+              <div>
+                <p className="font-medium">What are you looking for?</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Describe your risk appetite and goals to get a shortlist worth researching.
+                </p>
+              </div>
+              <div className="grid w-full max-w-md gap-2">
+                {STARTERS.map((starter) => (
                   <button
-                    key={s}
-                    onClick={() => send(s)}
-                    className="rounded-full border px-3 py-1.5 text-xs hover:bg-muted"
+                    key={starter}
+                    onClick={() => send(starter)}
+                    className="group flex items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 text-left text-sm transition-colors hover:border-primary/40 hover:bg-accent/50"
                   >
-                    {s}
+                    {starter}
+                    <ArrowRight
+                      className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
+                      aria-hidden
+                    />
                   </button>
                 ))}
               </div>
             </div>
           ) : (
-            <div className="flex flex-col gap-3">
-              {messages.map((m, i) => (
+            <div className="flex flex-col gap-4">
+              {messages.map((message, i) => (
                 <div
                   key={i}
-                  className={`max-w-[85%] whitespace-pre-wrap rounded-lg px-4 py-2.5 text-sm ${
-                    m.role === "user"
-                      ? "self-end bg-primary text-primary-foreground"
-                      : "self-start bg-muted"
-                  }`}
+                  className={`flex gap-2.5 ${message.role === "user" ? "justify-end" : "justify-start"}`}
                 >
-                  {m.content}
+                  {message.role === "assistant" && (
+                    <span className="icon-tile mt-0.5 size-7 shrink-0 text-chart-5">
+                      <Sparkles className="h-3.5 w-3.5" aria-hidden />
+                    </span>
+                  )}
+                  <div
+                    className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                      message.role === "user"
+                        ? "rounded-br-sm bg-primary text-primary-foreground"
+                        : "rounded-bl-sm bg-muted"
+                    }`}
+                  >
+                    {message.content}
+                  </div>
                 </div>
               ))}
               {loading && (
-                <div className="self-start rounded-lg bg-muted px-4 py-2.5 text-sm text-muted-foreground">
-                  Thinking…
+                <div className="flex items-center gap-2.5">
+                  <span className="icon-tile size-7 shrink-0 text-chart-5">
+                    <Sparkles className="h-3.5 w-3.5" aria-hidden />
+                  </span>
+                  <div className="flex items-center gap-1 rounded-2xl rounded-bl-sm bg-muted px-4 py-3">
+                    {[0, 150, 300].map((delay) => (
+                      <span
+                        key={delay}
+                        className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/60"
+                        style={{ animationDelay: `${delay}ms` }}
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
+              <div ref={endRef} />
             </div>
           )}
-          {error && <p className="text-sm text-red-600">{error}</p>}
+
+          {error && (
+            <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {error}
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -107,7 +150,7 @@ export function ChatInterface() {
           e.preventDefault();
           send(input);
         }}
-        className="flex gap-2"
+        className="flex items-end gap-2 rounded-xl border bg-card p-2 shadow-soft focus-within:border-primary/40"
       >
         <Textarea
           value={input}
@@ -115,6 +158,7 @@ export function ChatInterface() {
           placeholder="e.g. I'm 40 and want a balanced, low-fee fund…"
           rows={2}
           maxLength={1000}
+          className="resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
@@ -122,13 +166,19 @@ export function ChatInterface() {
             }
           }}
         />
-        <Button type="submit" disabled={loading || !input.trim()} className="self-end">
+        <Button
+          type="submit"
+          size="icon"
+          disabled={loading || !input.trim()}
+          aria-label="Send message"
+        >
           <Send className="h-4 w-4" />
         </Button>
       </form>
+
       <p className="text-xs text-muted-foreground">
-        Not regulated financial advice. Always speak to a qualified advisor before making
-        pension decisions.
+        Press Enter to send, Shift + Enter for a new line. Not regulated financial advice —
+        always speak to a qualified advisor before making pension decisions.
       </p>
     </div>
   );
