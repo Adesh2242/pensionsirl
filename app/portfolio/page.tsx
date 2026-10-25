@@ -24,6 +24,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AssetClassBadge } from "@/components/funds/asset-class-badge";
+import { PageHeader } from "@/components/layout/page-header";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth-context";
 import { createClient } from "@/lib/supabase/client";
 import { useFunds } from "@/lib/hooks/use-funds";
@@ -61,14 +63,14 @@ function Holding({
   const hasAlert = monthsSinceSeen >= 1 && monthsElapsed >= 1;
 
   return (
-    <Card>
-      <CardContent className="pt-6">
+    <Card className="shadow-soft">
+      <CardContent className="pt-1">
         {hasAlert && (
-          <div className="mb-4 flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm dark:border-blue-900 dark:bg-blue-950/40">
-            <Bell className="mt-0.5 h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden />
+          <div className="mb-4 flex items-start gap-3 rounded-lg bg-accent/60 p-3 text-sm ring-1 ring-inset ring-primary/15">
+            <Bell className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
             <div className="flex-1">
-              <p className="font-medium text-blue-900 dark:text-blue-200">Monthly update</p>
-              <p className="text-blue-800 dark:text-blue-300">
+              <p className="font-medium text-accent-foreground">Monthly update</p>
+              <p className="text-muted-foreground">
                 {fund.name} is now estimated at <strong>{formatEuro(currentValue)}</strong>{" "}
                 ({growth >= 0 ? "+" : ""}
                 {growthPct.toFixed(1)}% vs. what you&apos;ve put in).
@@ -83,7 +85,7 @@ function Holding({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-xs text-muted-foreground">{fund.providerName}</p>
-            <Link href={`/funds/${fund.slug}`} className="font-semibold hover:underline">
+            <Link href={`/funds/${fund.slug}`} className="font-semibold hover:text-primary">
               {fund.name}
             </Link>
             <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -93,21 +95,21 @@ function Holding({
           <button
             onClick={onRemove}
             aria-label={`Stop tracking ${fund.name}`}
-            className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
+        <div className="mt-4 grid grid-cols-3 gap-4 rounded-lg bg-muted/60 p-3 text-sm">
           <div>
             <p className="text-xs text-muted-foreground">Estimated value</p>
-            <p className="text-xl font-semibold">{formatEuro(currentValue)}</p>
+            <p className="tabular text-xl font-semibold">{formatEuro(currentValue)}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Since you started</p>
             <p
-              className={`flex items-center gap-1 text-xl font-semibold ${growth >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}
+              className={`tabular flex items-center gap-1 text-xl font-semibold ${growth >= 0 ? "text-success" : "text-destructive"}`}
             >
               {growth >= 0 ? (
                 <TrendingUp className="h-4 w-4" aria-hidden />
@@ -120,7 +122,7 @@ function Holding({
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Monthly contribution</p>
-            <p className="text-xl font-semibold">{formatEuro(tracked.monthlyContribution)}</p>
+            <p className="tabular text-xl font-semibold">{formatEuro(tracked.monthlyContribution)}</p>
           </div>
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
@@ -210,8 +212,14 @@ function AddHoldingDialog({
           <div className="space-y-1.5">
             <Label htmlFor="tf-fund">Fund</Label>
             <Select value={fundSlug} onValueChange={(v) => v && setFundSlug(v)}>
-              <SelectTrigger id="tf-fund" className="w-full">
-                <SelectValue placeholder="Choose a fund…" />
+              <SelectTrigger id="tf-fund" className="h-10 w-full">
+                {/* Render the fund's name, not its slug, for the selected value. */}
+                <SelectValue placeholder="Choose a fund…">
+                  {(value: string) => {
+                    const selected = funds.find((f) => f.slug === value);
+                    return selected ? `${selected.providerName} — ${selected.name}` : value;
+                  }}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {availableFunds.map((f) => (
@@ -230,6 +238,7 @@ function AddHoldingDialog({
               min="0"
               inputMode="decimal"
               placeholder="e.g. 15000"
+              className="tabular h-10"
               value={startValue}
               onChange={(e) => setStartValue(e.target.value)}
             />
@@ -242,6 +251,7 @@ function AddHoldingDialog({
               min="0"
               inputMode="decimal"
               placeholder="e.g. 300"
+              className="tabular h-10"
               value={monthlyContribution}
               onChange={(e) => setMonthlyContribution(e.target.value)}
             />
@@ -329,7 +339,16 @@ function PortfolioContent() {
   }
 
   if (authLoading || !user || tracked === null) {
-    return <div className="mx-auto max-w-3xl px-4 py-10 text-muted-foreground">Loading…</div>;
+    return (
+      <div className="container-page max-w-3xl py-12">
+        <Skeleton className="h-9 w-56" />
+        <Skeleton className="mt-3 h-5 w-full max-w-lg" />
+        <div className="mt-8 space-y-4">
+          <Skeleton className="h-44 rounded-xl" />
+          <Skeleton className="h-44 rounded-xl" />
+        </div>
+      </div>
+    );
   }
 
   const alertCount = tracked.filter((t) => {
@@ -339,48 +358,51 @@ function PortfolioContent() {
   }).length;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">My portfolio</h1>
-          <p className="mt-2 text-muted-foreground">
-            Track funds you hold and get a monthly estimate of their value based on your
-            contributions and each fund&apos;s return rate.
+    <>
+      <PageHeader
+        title="My portfolio"
+        description="Track funds you hold and get a monthly estimate of their value based on your contributions and each fund's return rate."
+        actions={
+          <Button size="lg" className="h-10" onClick={() => setDialogOpen(true)} disabled={!fundsReady}>
+            <Plus className="h-4 w-4" />
+            Track a fund
+          </Button>
+        }
+      >
+        {alertCount > 0 && (
+          <p className="mt-6 inline-flex items-center gap-2 rounded-full bg-accent px-3.5 py-1.5 text-sm font-medium text-accent-foreground">
+            <Bell className="h-4 w-4" aria-hidden />
+            {alertCount} {alertCount === 1 ? "holding has" : "holdings have"} a new monthly update
           </p>
-        </div>
-        <Button onClick={() => setDialogOpen(true)} disabled={!fundsReady}>
-          <Plus className="h-4 w-4" />
-          Track a fund
-        </Button>
-      </div>
+        )}
+      </PageHeader>
 
+      <div className="container-page max-w-3xl py-10">
       {!fundsReady && (
-        <p className="mt-2 text-xs text-muted-foreground">Loading live fund data…</p>
+        <p className="mb-4 text-xs text-muted-foreground">Loading live fund data…</p>
       )}
 
-      {alertCount > 0 && (
-        <p className="mt-4 flex items-center gap-1.5 text-sm font-medium text-blue-700 dark:text-blue-400">
-          <Bell className="h-4 w-4" aria-hidden />
-          {alertCount} {alertCount === 1 ? "holding has" : "holdings have"} a new monthly update
+      {loadError && (
+        <p className="mb-6 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {loadError}
         </p>
       )}
 
-      {loadError && <p className="mt-6 text-sm text-red-600">{loadError}</p>}
-
       {tracked.length === 0 ? (
-        <div className="mt-8 flex flex-col items-center gap-3 rounded-lg border border-dashed p-12 text-center">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400">
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed bg-card/50 p-14 text-center">
+          <div className="icon-tile size-12 text-chart-1">
             <Wallet className="h-5 w-5" aria-hidden />
           </div>
-          <p className="text-muted-foreground">
-            You&apos;re not tracking any funds yet. Add one to get monthly value estimates.
+          <p className="font-medium">No funds tracked yet</p>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            Add a fund to get a monthly estimate of what your contributions are worth.
           </p>
-          <Button variant="outline" size="sm" onClick={() => setDialogOpen(true)} disabled={!fundsReady}>
+          <Button variant="outline" size="sm" onClick={() => setDialogOpen(true)} disabled={!fundsReady} className="mt-1">
             Track your first fund
           </Button>
         </div>
       ) : (
-        <div className="mt-6 space-y-4">
+        <div className="space-y-4">
           {tracked.map((t) => {
             const fund = fundsBySlug.get(t.fundSlug);
             if (!fund) return null;
@@ -408,7 +430,8 @@ function PortfolioContent() {
         defaultFundSlug={prefillFund?.slug}
         onAdd={handleAdd}
       />
-    </div>
+      </div>
+    </>
   );
 }
 

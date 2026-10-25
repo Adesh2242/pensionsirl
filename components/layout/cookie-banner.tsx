@@ -45,12 +45,12 @@ export function CookieBanner() {
 
   return (
     <>
-      <div className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="animate-fade-up fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 shadow-lift backdrop-blur-md supports-[backdrop-filter]:bg-background/85">
+        <div className="container-page flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted-foreground">
             We use essential cookies to run PensionIQ, and optional analytics cookies to
             understand usage. No advertising or tracking pixels. See our{" "}
-            <a href="/privacy" className="underline underline-offset-2">
+            <a href="/privacy" className="font-medium text-foreground underline underline-offset-4 hover:text-primary">
               Privacy Policy
             </a>
             .
@@ -79,14 +79,14 @@ export function CookieBanner() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="flex items-center justify-between rounded-xl border p-3.5">
               <div>
                 <p className="text-sm font-medium">Necessary</p>
                 <p className="text-xs text-muted-foreground">Required for login and core features.</p>
               </div>
               <Switch checked disabled />
             </div>
-            <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="flex items-center justify-between rounded-xl border p-3.5">
               <div>
                 <p className="text-sm font-medium">Analytics</p>
                 <p className="text-xs text-muted-foreground">

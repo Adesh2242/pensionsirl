@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageHeader } from "@/components/layout/page-header";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
@@ -8,17 +9,21 @@ export const metadata: Metadata = {
 const LAST_UPDATED = "2026-08-19";
 
 const placeholder =
-  "rounded bg-amber-100 px-1 py-0.5 font-medium text-amber-900 dark:bg-amber-950 dark:text-amber-300";
+  "rounded bg-warning/15 px-1 py-0.5 font-medium text-warning ring-1 ring-inset ring-warning/25";
 
 export default function PrivacyPage() {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="text-3xl font-semibold tracking-tight">Privacy Policy</h1>
-      <p className="mt-2 text-sm text-muted-foreground">Last updated: {LAST_UPDATED}</p>
+    <>
+      <PageHeader
+        eyebrow={<span>Last updated: {LAST_UPDATED}</span>}
+        title="Privacy Policy"
+        description="How PensionIQ collects, uses and protects your data."
+      />
 
-      <div className="prose prose-sm mt-8 max-w-none space-y-8 text-sm leading-relaxed text-foreground">
+      <div className="container-page max-w-3xl py-10">
+      <div className="prose prose-sm max-w-none space-y-8 text-sm leading-relaxed text-foreground [&_h2]:scroll-mt-24">
         <section>
-          <p className="rounded-lg border border-dashed border-amber-400/60 bg-amber-50 p-4 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+          <p className="rounded-xl border border-dashed border-warning/50 bg-warning/10 p-4 text-foreground">
             <strong>Draft notice:</strong> this policy contains placeholder text (marked
             <code className="mx-1">[PLACEHOLDER]</code>) that must be filled in with real
             company and contact details, and reviewed by a qualified professional, before
@@ -180,6 +185,7 @@ export default function PrivacyPage() {
           </p>
         </section>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

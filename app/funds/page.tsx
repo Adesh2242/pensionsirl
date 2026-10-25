@@ -1,13 +1,14 @@
 "use client";
 
 import { Suspense, useMemo, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -15,10 +16,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PageHeader } from "@/components/layout/page-header";
 import { FundCard } from "@/components/funds/fund-card";
 import { assetClasses } from "@/lib/mock-data";
 import { useFunds } from "@/lib/hooks/use-funds";
 import { formatLastUpdated } from "@/lib/utils";
+import type { AssetClass } from "@/lib/types";
 
 const PAGE_SIZE = 24;
 
@@ -77,11 +80,20 @@ function FundsExplorer() {
 
   const visible = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
+  const loading = funds.length === 0;
 
   const providerName = providers.find((p) => p.slug === provider)?.name;
   const activeFilters = [
-    provider !== "all" && { key: "provider", label: providerName ?? provider, clear: () => setProvider("all") },
-    assetClass !== "all" && { key: "assetClass", label: assetClass, clear: () => setAssetClass("all") },
+    provider !== "all" && {
+      key: "provider",
+      label: providerName ?? provider,
+      clear: () => setProvider("all"),
+    },
+    assetClass !== "all" && {
+      key: "assetClass",
+      label: assetClass,
+      clear: () => setAssetClass("all"),
+    },
     query.trim() && { key: "query", label: `"${query.trim()}"`, clear: () => setQuery("") },
   ].filter((f): f is { key: string; label: string; clear: () => void } => Boolean(f));
 
@@ -91,170 +103,212 @@ function FundsExplorer() {
     setQuery("");
   }
 
-  return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
-      <div className="mb-8">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-3xl font-semibold tracking-tight">Fund explorer</h1>
-          <Badge
-            variant="outline"
-            className={
-              source === "supabase"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400"
-                : undefined
-            }
-          >
-            {source === "supabase" ? "Live data" : "Demo data"}
-          </Badge>
-        </div>
-        <p className="mt-2 text-muted-foreground">
-          {funds.length} funds across {providers.length} Irish providers.{" "}
-          {source === "supabase" ? (
-            <>
-              Sourced from the National Pension Helpline fund explorer — see{" "}
-              <a href="/how-it-works" className="underline underline-offset-2">
-                data sources
-              </a>
-              .
-            </>
-          ) : (
-            <>
-              Performance figures are illustrative — see{" "}
-              <a href="/how-it-works" className="underline underline-offset-2">
-                data sources
-              </a>
-              .
-            </>
-          )}
-        </p>
-        {source === "supabase" && lastScrapeTime && (
-          <p className="mt-1 text-xs text-muted-foreground">
-            Fund data last updated {formatLastUpdated(lastScrapeTime)} UTC
-          </p>
-        )}
-      </div>
+  const providerLabel = (value: string) =>
+    value === "all" ? "All providers" : (providers.find((p) => p.slug === value)?.name ?? value);
 
-      <Card className="mb-6 gap-3 p-4">
-        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          <SlidersHorizontal className="h-4 w-4" aria-hidden />
-          Filters
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="fund-search" className="text-xs text-muted-foreground">
-              Search
-            </Label>
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="fund-search"
-                placeholder="Fund or provider name…"
-                className="pl-9"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
+  return (
+    <>
+      <PageHeader
+        eyebrow={
+          <>
+            <Badge
+              variant="outline"
+              className={
+                source === "supabase"
+                  ? "bg-success/12 text-success ring-1 ring-inset ring-success/20"
+                  : undefined
+              }
+            >
+              {source === "supabase" ? "Live data" : "Demo data"}
+            </Badge>
+            {source === "supabase" && lastScrapeTime && (
+              <span>Updated {formatLastUpdated(lastScrapeTime)} UTC</span>
+            )}
+          </>
+        }
+        title="Fund explorer"
+        description={
+          <>
+            {funds.length} funds across {providers.length} Irish providers.{" "}
+            {source === "supabase"
+              ? "Sourced from the National Pension Helpline fund explorer — see "
+              : "Performance figures are illustrative — see "}
+            <Link href="/how-it-works" className="font-medium text-foreground underline underline-offset-4 hover:text-primary">
+              data sources
+            </Link>
+            .
+          </>
+        }
+      />
+
+      <div className="container-page py-8">
+        {/* Filter bar — sticks under the navbar so refining never means scrolling back up. */}
+        <div className="lg:sticky lg:top-16 z-30 -mx-5 mb-6 border-b bg-background/85 px-5 py-4 backdrop-blur-md sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+          <div className="grid gap-3 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
+            <div className="space-y-1.5">
+              <Label htmlFor="fund-search" className="text-xs text-muted-foreground">
+                Search
+              </Label>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="fund-search"
+                  placeholder="Fund or provider name…"
+                  className="h-10 pl-9"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Provider</Label>
+              <Select value={provider} onValueChange={(v) => v && setProvider(v)}>
+                <SelectTrigger className="h-10 w-full">
+                  <SelectValue>{(value: string) => providerLabel(value)}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All providers</SelectItem>
+                  {providers.map((p) => (
+                    <SelectItem key={p.slug} value={p.slug}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Asset class</Label>
+              <Select value={assetClass} onValueChange={(v) => v && setAssetClass(v)}>
+                <SelectTrigger className="h-10 w-full">
+                  <SelectValue>
+                    {(value: string) => (value === "all" ? "All asset classes" : value)}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All asset classes</SelectItem>
+                  {assetClasses.map((ac) => (
+                    <SelectItem key={ac} value={ac}>
+                      {ac}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Sort by</Label>
+              <Select value={sort} onValueChange={(v) => setSort(v as typeof sort)}>
+                <SelectTrigger className="h-10 w-full">
+                  <SelectValue>{(value: string) => SORT_LABELS[value] ?? value}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(SORT_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Provider</Label>
-            <Select value={provider} onValueChange={(v) => v && setProvider(v)}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Provider" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All providers</SelectItem>
-                {providers.map((p) => (
-                  <SelectItem key={p.slug} value={p.slug}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Asset class</Label>
-            <Select value={assetClass} onValueChange={(v) => v && setAssetClass(v)}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Asset class" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All asset classes</SelectItem>
-                {assetClasses.map((ac) => (
-                  <SelectItem key={ac} value={ac}>
-                    {ac}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Sort by</Label>
-            <Select value={sort} onValueChange={(v) => setSort(v as typeof sort)}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(SORT_LABELS).map(([value, label]) => (
-                  <SelectItem key={value} value={value}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
 
-        {activeFilters.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 border-t pt-3">
-            {activeFilters.map((f) => (
+          {/* Asset-class quick chips: the filter people reach for most, one tap away. */}
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+            <SlidersHorizontal className="mr-0.5 h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+            {(["all", ...assetClasses] as (AssetClass | "all")[]).map((ac) => (
               <button
-                key={f.key}
-                onClick={f.clear}
-                className="inline-flex items-center gap-1 rounded-full border bg-muted px-2.5 py-1 text-xs font-medium hover:bg-muted/70"
+                key={ac}
+                onClick={() => setAssetClass(ac)}
+                aria-pressed={assetClass === ac}
+                className={`rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset transition-colors ${
+                  assetClass === ac
+                    ? "bg-primary text-primary-foreground ring-primary"
+                    : "bg-card text-muted-foreground ring-border hover:bg-muted hover:text-foreground"
+                }`}
               >
-                {f.label}
-                <X className="h-3 w-3" aria-hidden />
+                {ac === "all" ? "All" : ac}
               </button>
             ))}
-            <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={clearAll}>
-              Clear all
-            </Button>
           </div>
-        )}
-      </Card>
 
-      <p className="mb-4 text-sm text-muted-foreground">
-        Showing {visible.length} of {filtered.length} funds
-      </p>
-
-      {filtered.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed p-12 text-center">
-          <Search className="h-8 w-8 text-muted-foreground" aria-hidden />
-          <p className="text-muted-foreground">No funds match your filters.</p>
-          <Button variant="outline" size="sm" onClick={clearAll}>
-            Clear filters
-          </Button>
-        </div>
-      ) : (
-        <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {visible.map((fund) => (
-              <FundCard key={fund.id} fund={fund} />
-            ))}
-          </div>
-          {hasMore && (
-            <div className="mt-8 flex justify-center">
-              <Button
-                variant="outline"
-                onClick={() => setPagination((p) => ({ ...p, count: p.count + PAGE_SIZE }))}
-              >
-                Load {Math.min(PAGE_SIZE, filtered.length - visibleCount)} more
+          {activeFilters.length > 0 && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
+              <span className="text-xs text-muted-foreground">Active:</span>
+              {activeFilters.map((f) => (
+                <button
+                  key={f.key}
+                  onClick={f.clear}
+                  className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground transition-colors hover:bg-accent/70"
+                >
+                  {f.label}
+                  <X className="h-3 w-3" aria-hidden />
+                </button>
+              ))}
+              <Button variant="ghost" size="xs" onClick={clearAll}>
+                Clear all
               </Button>
             </div>
           )}
-        </>
-      )}
-    </div>
+        </div>
+
+        <p className="mb-4 text-sm text-muted-foreground">
+          {loading ? (
+            "Loading funds…"
+          ) : (
+            <>
+              Showing <span className="tabular font-medium text-foreground">{visible.length}</span>{" "}
+              of <span className="tabular font-medium text-foreground">{filtered.length}</span>{" "}
+              funds
+            </>
+          )}
+        </p>
+
+        {loading ? (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }, (_, i) => (
+              <Skeleton key={i} className="h-60 rounded-xl" />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed bg-card/50 p-14 text-center">
+            <div className="icon-tile size-12 text-muted-foreground">
+              <Search className="h-5 w-5" aria-hidden />
+            </div>
+            <p className="font-medium">No funds match your filters</p>
+            <p className="max-w-sm text-sm text-muted-foreground">
+              Try a broader search term, or clear a filter to widen the results.
+            </p>
+            <Button variant="outline" size="sm" onClick={clearAll} className="mt-1">
+              Clear filters
+            </Button>
+          </div>
+        ) : (
+          <>
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {visible.map((fund) => (
+                <FundCard key={fund.id} fund={fund} />
+              ))}
+            </div>
+            {hasMore && (
+              <div className="mt-10 flex flex-col items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => setPagination((p) => ({ ...p, count: p.count + PAGE_SIZE }))}
+                >
+                  Load {Math.min(PAGE_SIZE, filtered.length - visibleCount)} more
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  {filtered.length - visibleCount} funds remaining
+                </p>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </>
   );
 }
 

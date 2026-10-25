@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { TriangleAlert } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 
 export default function Error({
@@ -16,9 +17,12 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center px-4 text-center">
-      <p className="text-sm font-medium text-muted-foreground">Error</p>
-      <h1 className="mt-2 text-2xl font-semibold tracking-tight">Something went wrong</h1>
+    <div className="container-page flex min-h-[60vh] max-w-md flex-col items-center justify-center text-center">
+      <div className="icon-tile size-14 text-destructive">
+        <TriangleAlert className="h-6 w-6" aria-hidden />
+      </div>
+      <p className="mt-6 text-sm font-medium text-muted-foreground">Error</p>
+      <h1 className="mt-2 text-2xl font-semibold">Something went wrong</h1>
       <p className="mt-2 text-muted-foreground">
         This page hit an unexpected error. You can try again, or head back home.
       </p>

@@ -3,11 +3,12 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { MailCheck, TriangleAlert } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { AuthShell } from "@/components/auth/auth-shell";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 
@@ -51,82 +52,102 @@ export default function SignupPage() {
 
   if (confirmEmailSent) {
     return (
-      <div className="mx-auto flex min-h-[70vh] max-w-md items-center px-4 py-10">
-        <Card className="w-full">
-          <CardHeader>
-            <CardTitle>Check your email</CardTitle>
-            <CardDescription>
-              We sent a confirmation link to <strong>{email}</strong>. Click it to activate
-              your account, then log in.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/login" className={buttonVariants({ className: "w-full" })}>
-              Go to log in
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
+      <AuthShell
+        title="Check your email"
+        description={
+          <>
+            We sent a confirmation link to <strong className="text-foreground">{email}</strong>.
+            Click it to activate your account, then log in.
+          </>
+        }
+      >
+        <div className="flex flex-col items-center gap-5 py-2 text-center">
+          <div className="icon-tile size-14 text-primary">
+            <MailCheck className="h-6 w-6" aria-hidden />
+          </div>
+          <Link href="/login" className={buttonVariants({ size: "lg", className: "h-10 w-full" })}>
+            Go to log in
+          </Link>
+        </div>
+      </AuthShell>
     );
   }
 
   return (
-    <div className="mx-auto flex min-h-[70vh] max-w-md items-center px-4 py-10">
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Create an account</CardTitle>
-          <CardDescription>
-            {isSupabaseConfigured()
-              ? "Save funds and track your progress."
-              : "Demo mode — accounts are stored in your browser only, nothing leaves this device."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <GoogleSignInButton />
-          <div className="my-4 flex items-center gap-3">
-            <Separator className="flex-1" />
-            <span className="text-xs text-muted-foreground">or</span>
-            <Separator className="flex-1" />
-          </div>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input id="name" required value={name} onChange={(e) => setName(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                required
-                minLength={8}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            {error && <p className="text-sm text-red-600">{error}</p>}
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Creating account…" : "Sign up"}
-            </Button>
-          </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            Already have an account?{" "}
-            <Link href="/login" className="underline underline-offset-2">
-              Log in
-            </Link>
+    <AuthShell
+      title="Create your account"
+      description={
+        isSupabaseConfigured()
+          ? "Track funds, save comparisons and get monthly value estimates."
+          : "Demo mode — accounts are stored in your browser only, nothing leaves this device."
+      }
+      footer={
+        <>
+          Already have an account?{" "}
+          <Link
+            href="/login"
+            className="font-medium text-foreground underline underline-offset-4 hover:text-primary"
+          >
+            Log in
+          </Link>
+        </>
+      }
+    >
+      <GoogleSignInButton />
+      <div className="my-5 flex items-center gap-3">
+        <Separator className="flex-1" />
+        <span className="text-xs text-muted-foreground">or sign up with email</span>
+        <Separator className="flex-1" />
+      </div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="name">Name</Label>
+          <Input
+            id="name"
+            autoComplete="name"
+            className="h-10"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.ie"
+            className="h-10"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
+            type="password"
+            autoComplete="new-password"
+            className="h-10"
+            required
+            minLength={8}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">At least 8 characters.</p>
+        </div>
+        {error && (
+          <p className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            {error}
           </p>
-        </CardContent>
-      </Card>
-    </div>
+        )}
+        <Button type="submit" size="lg" className="h-10 w-full" disabled={loading}>
+          {loading ? "Creating account…" : "Create account"}
+        </Button>
+      </form>
+    </AuthShell>
   );
 }
