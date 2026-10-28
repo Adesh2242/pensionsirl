@@ -1,69 +1,81 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { Check } from "lucide-react";
-import { Brand } from "@/components/layout/navbar";
+import { Field } from "@/components/editorial/field";
+import { SectionLabel } from "@/components/editorial/section-label";
 
 const highlights = [
-  "Compare 400+ funds from every major Irish provider",
-  "Project your pot with Revenue's real tax relief limits",
-  "Track what you hold and get monthly value estimates",
+  "every irish provider in one searchable list",
+  "projections on revenue's real relief limits",
+  "track what you hold, get monthly estimates",
 ];
 
 /**
- * Two-panel auth layout: the form on the left, a reminder of what an account
- * is actually for on the right (hidden on small screens, where it would just
- * push the form below the fold).
+ * Two-panel auth layout: the gradient field and the argument on the left, the
+ * form on the right. On small screens the field collapses to a header strip.
  */
 export function AuthShell({
-  title,
+  label,
+  lines,
   description,
   children,
   footer,
 }: {
-  title: string;
+  label: string;
+  /** Headline, one entry per line. */
+  lines: readonly string[];
   description: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
 }) {
   return (
-    <div className="relative isolate overflow-hidden">
-      <div className="bg-grid absolute inset-0" aria-hidden />
-      <div className="container-page relative grid min-h-[calc(100vh-14rem)] items-center gap-12 py-14 lg:grid-cols-2 lg:gap-16">
-        <div className="mx-auto w-full max-w-md">
-          <Link href="/" className="inline-flex lg:hidden">
-            <Brand />
-          </Link>
-          <div className="mt-6 rounded-2xl border bg-card p-6 shadow-lift sm:p-8 lg:mt-0">
-            <h1 className="text-2xl font-semibold">{title}</h1>
-            <p className="mt-1.5 text-sm text-muted-foreground">{description}</p>
-            <div className="mt-6">{children}</div>
+    <div className="px-3 pb-3">
+      <div className="grid gap-3 lg:grid-cols-2">
+        <Field
+          className="flex min-h-[18rem] flex-col justify-end rounded-[var(--radius)] lg:min-h-[calc(100svh-1.5rem)]"
+          tone="teal"
+        >
+          <div className="px-7 pb-10 pt-28 md:px-10 md:pb-14 lg:pt-40">
+            <SectionLabel>{label}</SectionLabel>
+            <h1 className="lower mt-7 font-heading text-[11vw] leading-[0.95] tracking-tight md:text-[4.4vw]">
+              {lines.map((line) => (
+                <span key={line} className="block">
+                  {line}
+                </span>
+              ))}
+            </h1>
+            <ul className="mt-12 hidden border-t border-border pt-6 lg:block">
+              {highlights.map((highlight) => (
+                <li
+                  key={highlight}
+                  className="lower flex items-baseline gap-3 border-b border-border py-3 text-sm text-muted-foreground"
+                >
+                  <span className="text-primary" aria-hidden>
+                    ▸
+                  </span>
+                  {highlight}
+                </li>
+              ))}
+            </ul>
           </div>
-          {footer && <div className="mt-5 text-center text-sm text-muted-foreground">{footer}</div>}
-        </div>
+        </Field>
 
-        <aside className="hidden lg:block">
-          <div className="bg-glow relative isolate overflow-hidden rounded-2xl border bg-gradient-to-br from-accent/60 to-card p-10 shadow-soft">
-            <div className="relative">
-              <Brand />
-              <p className="mt-6 text-2xl font-semibold leading-snug">
-                Pension decisions are easier when you can see the whole market.
-              </p>
-              <ul className="mt-7 space-y-3.5">
-                {highlights.map((highlight) => (
-                  <li key={highlight} className="flex items-start gap-3 text-sm">
-                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary">
-                      <Check className="h-3 w-3" aria-hidden />
-                    </span>
-                    <span className="text-muted-foreground">{highlight}</span>
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-8 text-xs text-muted-foreground">
-                Free to use. Not regulated financial advice.
-              </p>
-            </div>
+        <div className="flex items-center px-4 py-14 md:px-10 lg:py-20">
+          <div className="mx-auto w-full max-w-md">
+            <p className="lower text-sm text-muted-foreground">{description}</p>
+            <div className="mt-10">{children}</div>
+            {footer && (
+              <div className="lower mt-10 border-t border-border pt-6 font-mono text-xs text-muted-foreground">
+                {footer}
+              </div>
+            )}
+            <Link
+              href="/"
+              className="lower link-underline mt-10 inline-block font-mono text-xs text-muted-foreground hover:text-foreground"
+            >
+              ← back to pensioniq
+            </Link>
           </div>
-        </aside>
+        </div>
       </div>
     </div>
   );

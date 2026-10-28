@@ -44,110 +44,80 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  --color-warm: var(--warm);
+  --color-sun: var(--sun);
+  --color-slate: var(--slate);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
-  --animate-fade-up: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-  --animate-fade-in: fade-in 0.4s ease-out both;
+  --radius-xl: calc(var(--radius) + 6px);
+  --radius-2xl: calc(var(--radius) + 14px);
+  --radius-3xl: calc(var(--radius) + 22px);
+  --radius-4xl: calc(var(--radius) + 30px);
 }
 
 /*
- * Palette notes: neutrals carry a faint blue cast (chroma ~0.01) so they sit
- * under the blue brand hue rather than fighting it, and every semantic colour
- * exists in both themes so components never hard-code a Tailwind palette step.
+ * Near-black canvas, off-white ink, one muted teal, and a warm counterweight
+ * used only in the gradient fields. Figures (returns, charges, projections)
+ * lean on --success / --destructive, which are tuned to sit on near-black
+ * rather than on white.
  */
 :root {
-  --background: oklch(0.993 0.003 255);
-  --foreground: oklch(0.21 0.022 259);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.21 0.022 259);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.21 0.022 259);
-  --primary: oklch(0.52 0.168 258);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.967 0.006 256);
-  --secondary-foreground: oklch(0.28 0.025 259);
-  --muted: oklch(0.967 0.006 256);
-  --muted-foreground: oklch(0.525 0.025 257);
-  --accent: oklch(0.955 0.025 256);
-  --accent-foreground: oklch(0.42 0.14 258);
-  --destructive: oklch(0.58 0.205 26);
-  --destructive-foreground: oklch(0.99 0 0);
-  --success: oklch(0.58 0.125 163);
-  --success-foreground: oklch(0.99 0 0);
-  --warning: oklch(0.68 0.145 70);
-  --warning-foreground: oklch(0.21 0.022 259);
-  --border: oklch(0.912 0.009 257);
-  --input: oklch(0.912 0.009 257);
-  --ring: oklch(0.52 0.168 258);
-  --chart-1: oklch(0.52 0.168 258);
-  --chart-2: oklch(0.6 0.13 180);
-  --chart-3: oklch(0.7 0.15 70);
-  --chart-4: oklch(0.58 0.14 150);
-  --chart-5: oklch(0.52 0.18 300);
-  --radius: 0.75rem;
-  --sidebar: oklch(0.985 0.004 256);
-  --sidebar-foreground: oklch(0.21 0.022 259);
-  --sidebar-primary: oklch(0.52 0.168 258);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.955 0.025 256);
-  --sidebar-accent-foreground: oklch(0.42 0.14 258);
-  --sidebar-border: oklch(0.912 0.009 257);
-  --sidebar-ring: oklch(0.52 0.168 258);
+  --radius: 10px;
 
-  /* Elevation — tuned to the neutral hue so shadows read as depth, not grime. */
-  --shadow-soft: 0 1px 2px -1px oklch(0.21 0.022 259 / 0.08),
-    0 2px 8px -2px oklch(0.21 0.022 259 / 0.06);
-  --shadow-lift: 0 2px 4px -2px oklch(0.21 0.022 259 / 0.1),
-    0 12px 28px -8px oklch(0.21 0.022 259 / 0.14);
-  --grid-line: oklch(0.21 0.022 259 / 0.045);
-}
+  --background: #050505;
+  --foreground: #f5f5f2;
+  --card: #101514;
+  --card-foreground: #f5f5f2;
+  --popover: #101514;
+  --popover-foreground: #f5f5f2;
+  --primary: #409b96;
+  --primary-foreground: #050505;
+  --secondary: #0a0c12;
+  --secondary-foreground: #f5f5f2;
+  --muted: #101514;
+  --muted-foreground: #81918a;
+  --accent: #15201f;
+  --accent-foreground: #7fc2bd;
+  --destructive: #e25b24;
+  --destructive-foreground: #f5f5f2;
+  --success: #52b3a4;
+  --success-foreground: #050505;
+  --warning: #f2ca46;
+  --warning-foreground: #050505;
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --input: rgba(255, 255, 255, 0.14);
+  --ring: #409b96;
 
-.dark {
-  --background: oklch(0.185 0.018 262);
-  --foreground: oklch(0.97 0.004 255);
-  --card: oklch(0.228 0.019 262);
-  --card-foreground: oklch(0.97 0.004 255);
-  --popover: oklch(0.228 0.019 262);
-  --popover-foreground: oklch(0.97 0.004 255);
-  --primary: oklch(0.68 0.155 256);
-  --primary-foreground: oklch(0.17 0.025 262);
-  --secondary: oklch(0.285 0.02 262);
-  --secondary-foreground: oklch(0.97 0.004 255);
-  --muted: oklch(0.275 0.019 262);
-  --muted-foreground: oklch(0.715 0.022 258);
-  --accent: oklch(0.32 0.05 258);
-  --accent-foreground: oklch(0.85 0.09 256);
-  --destructive: oklch(0.7 0.18 24);
-  --destructive-foreground: oklch(0.17 0.025 262);
-  --success: oklch(0.72 0.135 165);
-  --success-foreground: oklch(0.17 0.025 262);
-  --warning: oklch(0.79 0.14 75);
-  --warning-foreground: oklch(0.17 0.025 262);
-  --border: oklch(1 0 0 / 11%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.68 0.155 256);
-  --chart-1: oklch(0.68 0.155 256);
-  --chart-2: oklch(0.73 0.12 180);
-  --chart-3: oklch(0.79 0.14 75);
-  --chart-4: oklch(0.72 0.135 160);
-  --chart-5: oklch(0.69 0.15 300);
-  --sidebar: oklch(0.228 0.019 262);
-  --sidebar-foreground: oklch(0.97 0.004 255);
-  --sidebar-primary: oklch(0.68 0.155 256);
-  --sidebar-primary-foreground: oklch(0.17 0.025 262);
-  --sidebar-accent: oklch(0.32 0.05 258);
-  --sidebar-accent-foreground: oklch(0.85 0.09 256);
-  --sidebar-border: oklch(1 0 0 / 11%);
-  --sidebar-ring: oklch(0.68 0.155 256);
+  /* Gradient-field accents */
+  --warm: #e25b24;
+  --sun: #f2ca46;
+  --slate: #647891;
+  --void: #0a0c12;
 
-  --shadow-soft: 0 1px 2px -1px oklch(0 0 0 / 0.4), 0 2px 8px -2px oklch(0 0 0 / 0.32);
-  --shadow-lift: 0 2px 4px -2px oklch(0 0 0 / 0.45), 0 14px 32px -10px oklch(0 0 0 / 0.55);
-  --grid-line: oklch(1 0 0 / 0.05);
+  /* The inverted panel */
+  --paper: #f5f5f2;
+  --ink: #101514;
+
+  --chart-1: #409b96;
+  --chart-2: #647891;
+  --chart-3: #f2ca46;
+  --chart-4: #52b3a4;
+  --chart-5: #e25b24;
+
+  --sidebar: #101514;
+  --sidebar-foreground: #f5f5f2;
+  --sidebar-primary: #409b96;
+  --sidebar-primary-foreground: #050505;
+  --sidebar-accent: #15201f;
+  --sidebar-accent-foreground: #7fc2bd;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: #409b96;
+
+  --ease-out-quint: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @layer base {
@@ -157,112 +127,329 @@
   html {
     @apply font-sans;
     scroll-behavior: smooth;
+    background: var(--background);
+    color-scheme: dark;
   }
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    overflow-x: clip;
   }
-  ::selection {
-    background-color: color-mix(in oklch, var(--primary) 22%, transparent);
-  }
-  /* Headings carry the tighter optical tracking the body copy doesn't want. */
+  /* Display type is set light and tight — the headline carries the page, not its weight. */
   h1,
   h2,
-  h3 {
-    @apply font-heading tracking-tight;
-    text-wrap: balance;
+  h3,
+  h4 {
+    @apply font-heading;
+    letter-spacing: -0.03em;
+    line-height: 0.98;
+    font-weight: 400;
   }
-  /* Number-heavy UI (returns, charges, projections) lines up in tabular figures. */
-  .tabular {
-    font-variant-numeric: tabular-nums;
+  ::selection {
+    background: rgba(64, 155, 150, 0.35);
+    color: var(--foreground);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
   }
 }
 
 @layer components {
-  /* One page gutter everywhere, so every route lines up with the navbar. */
+  /* One gutter for every page, matching the floating nav's measure. */
   .container-page {
-    @apply mx-auto w-full max-w-6xl px-5 sm:px-6 lg:px-8;
+    @apply mx-auto w-full max-w-[1400px] px-6 md:px-10;
   }
 
-  .shadow-soft {
-    box-shadow: var(--shadow-soft);
+  /* ───────────── Surface language ───────────── */
+
+  /* The signature backdrop: a warm ellipse low-left, a cool one high-right,
+     both dissolving into near-black. */
+  .field {
+    background:
+      radial-gradient(ellipse 52% 36% at 20% 74%, var(--field-warm, var(--warm)), transparent 62%),
+      radial-gradient(ellipse 58% 40% at 80% 24%, var(--field-cool, var(--slate)), transparent 64%),
+      var(--void);
+  }
+  .field-teal {
+    --field-warm: var(--warm);
+    --field-cool: var(--primary);
+  }
+  .field-sun {
+    --field-warm: var(--sun);
+    --field-cool: var(--primary);
+  }
+  .field-slate {
+    --field-warm: var(--warm);
+    --field-cool: var(--slate);
   }
 
-  .shadow-lift {
-    box-shadow: var(--shadow-lift);
-  }
-
-  /* Interactive card: lifts a hair and borrows the brand hue on hover. */
-  .card-interactive {
-    @apply transition-all duration-200 ease-out;
-    box-shadow: var(--shadow-soft);
-  }
-  .card-interactive:hover {
-    box-shadow: var(--shadow-lift);
-    transform: translateY(-2px);
-    --tw-ring-color: color-mix(in oklch, var(--primary) 35%, transparent);
-  }
-
-  /* Faint engineering grid for hero/CTA bands, faded out at the edges. */
-  .bg-grid {
-    background-image: linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
-      linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
-    background-size: 56px 56px;
-    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%);
-  }
-
-  /* Soft brand glow sitting behind hero content. */
-  .bg-glow::before {
+  /* Film grain over the gradient, so the bands never look like plastic. */
+  .grain::before {
     content: "";
     position: absolute;
-    inset-inline: 0;
-    top: -14rem;
-    height: 32rem;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: 0.3;
+    mix-blend-mode: overlay;
     pointer-events: none;
-    background: radial-gradient(
-      ellipse 55% 50% at 50% 50%,
-      color-mix(in oklch, var(--primary) 20%, transparent),
-      transparent 70%
-    );
   }
 
+  /* Content is framed, not bled: a thin margin of pure black all round. */
+  .inset-frame {
+    margin: 10px;
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  /* Glass pill — nav bar, buttons, tags. Dark rather than translucent-white,
+     so it floats over both the black canvas and the paper panels. */
+  .pill {
+    background: rgba(10, 12, 18, 0.72);
+    color: var(--foreground);
+    backdrop-filter: blur(18px) saturate(135%);
+    -webkit-backdrop-filter: blur(18px) saturate(135%);
+    border: 1px solid var(--border-strong);
+  }
+
+  /* Hairline rules that separate columns and rows */
+  .hairline-l {
+    border-left: 1px solid var(--border);
+  }
+  .hairline-t {
+    border-top: 1px solid var(--border);
+  }
+  .hairline-b {
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* The inverted moment: an off-white panel against all that black */
+  .paper {
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .paper .text-muted-foreground {
+    color: #6b7671;
+  }
+  .paper .border-border,
+  .paper .hairline-t,
+  .paper .hairline-b,
+  .paper .hairline-l {
+    border-color: rgba(16, 21, 20, 0.14);
+  }
+
+  /* Editorial voice: the interface speaks in lowercase */
+  .lower {
+    text-transform: lowercase;
+  }
+
+  /* Ragged headline: each line steps across the measure */
+  .ragged > * {
+    display: block;
+  }
+  .ragged > *:nth-child(2) {
+    padding-left: 18%;
+  }
+  .ragged > *:nth-child(3) {
+    padding-left: 7%;
+  }
+  @media (max-width: 640px) {
+    .ragged > *:nth-child(2) {
+      padding-left: 10%;
+    }
+    .ragged > *:nth-child(3) {
+      padding-left: 4%;
+    }
+  }
+
+  .text-accent-teal {
+    color: var(--primary);
+  }
   .text-gradient {
-    background: linear-gradient(
-      100deg,
-      var(--foreground) 10%,
-      color-mix(in oklch, var(--primary) 85%, var(--foreground)) 55%,
-      var(--foreground) 95%
-    );
+    background: linear-gradient(100deg, var(--primary), var(--sun));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
 
-  /* Tinted icon tile used for features, stats and section markers. */
-  .icon-tile {
-    @apply flex items-center justify-center rounded-xl ring-1 ring-inset;
-    background-color: color-mix(in oklch, currentColor 12%, transparent);
-    --tw-ring-color: color-mix(in oklch, currentColor 20%, transparent);
+  /* Figures line up column to column wherever numbers are compared. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* A row in a hairline listing — funds, holdings, FAQ, à-la-carte lines. */
+  .row-link {
+    transition:
+      background-color 0.45s ease,
+      padding-left 0.45s var(--ease-out-quint),
+      color 0.45s ease;
+  }
+  .row-link:hover {
+    background-color: rgba(255, 255, 255, 0.025);
+    padding-left: 0.6rem;
   }
 }
 
-@keyframes fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
+@layer utilities {
+  /* ───────────── Motion ───────────── */
+
+  /* Scroll reveal. The hidden state is applied after mount, so server-rendered
+     markup is always visible and nothing flashes on hydration. */
+  [data-reveal] {
+    transition:
+      opacity 0.9s var(--ease-out-quint),
+      transform 0.9s var(--ease-out-quint),
+      filter 0.9s var(--ease-out-quint);
   }
-  to {
+  [data-reveal][data-reveal-state="hidden"] {
+    opacity: 0;
+  }
+  [data-reveal="up"][data-reveal-state="hidden"] {
+    transform: translate3d(0, 28px, 0);
+  }
+  [data-reveal="left"][data-reveal-state="hidden"] {
+    transform: translate3d(-32px, 0, 0);
+  }
+  [data-reveal="right"][data-reveal-state="hidden"] {
+    transform: translate3d(32px, 0, 0);
+  }
+  [data-reveal="scale"][data-reveal-state="hidden"] {
+    transform: scale(0.96);
+  }
+  [data-reveal="line"] {
+    transform-origin: left center;
+    transition-duration: 1.4s;
+  }
+  [data-reveal="line"][data-reveal-state="hidden"] {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  [data-reveal][data-reveal-state="visible"] {
     opacity: 1;
     transform: none;
+    filter: none;
   }
-}
 
-@keyframes fade-in {
-  from {
-    opacity: 0;
+  /* Word-by-word headline reveal */
+  [data-text-reveal] > span {
+    display: inline-block;
+    transition:
+      opacity 0.9s var(--ease-out-quint),
+      transform 0.9s var(--ease-out-quint),
+      filter 0.9s var(--ease-out-quint);
+    transition-delay: calc(var(--i, 0) * 60ms);
   }
-  to {
+  [data-text-reveal][data-reveal-state="hidden"] > span {
+    opacity: 0;
+    transform: translate3d(0, 0.5em, 0);
+    filter: blur(12px);
+  }
+
+  /* The gradient field breathes rather than loops visibly */
+  .animate-drift {
+    animation: drift 26s ease-in-out infinite alternate;
+  }
+  @keyframes drift {
+    0% {
+      transform: scale(1.08) translate3d(-2%, -1%, 0);
+    }
+    50% {
+      transform: scale(1.18) translate3d(3%, 2%, 0);
+    }
+    100% {
+      transform: scale(1.1) translate3d(-1%, 2%, 0);
+    }
+  }
+
+  .animate-marquee {
+    animation: marquee 46s linear infinite;
+  }
+  @keyframes marquee {
+    to {
+      transform: translate3d(-50%, 0, 0);
+    }
+  }
+  .marquee-mask {
+    mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+  }
+
+  .animate-fade-up {
+    animation: fade-up 1s var(--ease-out-quint) both;
+  }
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 20px, 0);
+    }
+  }
+
+  .animate-page-in {
+    animation: page-in 0.6s var(--ease-out-quint) both;
+  }
+  @keyframes page-in {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 12px, 0);
+    }
+  }
+
+  .animate-nudge {
+    animation: nudge 2.6s ease-in-out infinite;
+  }
+  @keyframes nudge {
+    0%,
+    100% {
+      transform: translate(0, 0);
+    }
+    50% {
+      transform: translate(3px, -3px);
+    }
+  }
+
+  /* Cursor-following highlight; --mx/--my are written in JS */
+  .spotlight {
+    position: relative;
+    isolation: isolate;
+  }
+  .spotlight::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    background: radial-gradient(
+      340px circle at var(--mx, 50%) var(--my, 0%),
+      rgba(64, 155, 150, 0.14),
+      transparent 70%
+    );
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+    z-index: -1;
+  }
+  .spotlight:hover::before {
     opacity: 1;
+  }
+
+  /* Links that underline themselves on approach */
+  .link-underline {
+    position: relative;
+  }
+  .link-underline::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -3px;
+    height: 1px;
+    width: 100%;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.45s var(--ease-out-quint);
+  }
+  .link-underline:hover::after,
+  .link-underline[data-active="true"]::after {
+    transform: scaleX(1);
   }
 }
 
@@ -277,7 +464,13 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
-  .card-interactive:hover {
-    transform: none;
+  [data-reveal],
+  [data-text-reveal] > span {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+  .row-link:hover {
+    padding-left: 0;
   }
 }

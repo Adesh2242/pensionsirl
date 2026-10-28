@@ -1,11 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Send, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 
 interface Message {
   role: "user" | "assistant";
@@ -13,9 +9,9 @@ interface Message {
 }
 
 const STARTERS = [
-  "I'm 32, cautious, and want low-fee funds",
-  "Suggest high-growth funds for someone 20 years from retirement",
-  "What ESG pension funds are available?",
+  "i'm 32, cautious, and want low-fee funds",
+  "suggest high-growth funds for someone 20 years from retirement",
+  "what esg pension funds are available?",
 ];
 
 export function ChatInterface() {
@@ -58,107 +54,92 @@ export function ChatInterface() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col">
       {source === "mock" && (
-        <Badge variant="outline" className="w-fit">
-          Demo mode — set GEMINI_API_KEY for live AI responses
-        </Badge>
+        <p className="lower mb-6 font-mono text-xs text-muted-foreground">
+          demo mode — set GEMINI_API_KEY for live ai responses
+        </p>
       )}
 
-      <Card className="shadow-soft">
-        <CardContent className="flex min-h-[26rem] flex-col gap-4 pt-2">
-          {messages.length === 0 ? (
-            <div className="flex flex-1 flex-col items-center justify-center gap-5 py-8 text-center">
-              <div className="icon-tile size-14 text-chart-5">
-                <Sparkles className="h-6 w-6" aria-hidden />
-              </div>
-              <div>
-                <p className="font-medium">What are you looking for?</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Describe your risk appetite and goals to get a shortlist worth researching.
+      <div className="min-h-[24rem] border-t border-border py-10">
+        {messages.length === 0 ? (
+          <div>
+            <p className="lower font-heading text-2xl tracking-tight md:text-3xl">
+              what are you looking for?
+            </p>
+            <p className="lower mt-3 max-w-md text-sm text-muted-foreground">
+              describe your risk appetite and goals, and we&apos;ll point at funds in the catalog
+              worth researching.
+            </p>
+            <ul className="mt-10 border-t border-border">
+              {STARTERS.map((starter, i) => (
+                <li key={starter}>
+                  <button
+                    onClick={() => send(starter)}
+                    className="row-link group flex w-full items-center justify-between gap-6 border-b border-border py-5 text-left"
+                  >
+                    <span className="lower flex items-center gap-4">
+                      <span className="tabular font-mono text-xs text-primary">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      <span className="text-base">{starter}</span>
+                    </span>
+                    <span
+                      className="shrink-0 text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:text-primary"
+                      aria-hidden
+                    >
+                      ↗
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-8">
+            {messages.map((message, i) => (
+              <div key={i} className="border-b border-border pb-8 last:border-b-0 last:pb-0">
+                <p className="lower mb-3 font-mono text-xs text-primary">
+                  {message.role === "user" ? "you" : "pensioniq"}
+                </p>
+                <p
+                  className={`whitespace-pre-wrap leading-relaxed ${
+                    message.role === "user"
+                      ? "lower font-heading text-xl tracking-tight md:text-2xl"
+                      : "text-sm text-muted-foreground md:text-base"
+                  }`}
+                >
+                  {message.content}
                 </p>
               </div>
-              <div className="grid w-full max-w-md gap-2">
-                {STARTERS.map((starter) => (
-                  <button
-                    key={starter}
-                    onClick={() => send(starter)}
-                    className="group flex items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3 text-left text-sm transition-colors hover:border-primary/40 hover:bg-accent/50"
-                  >
-                    {starter}
-                    <ArrowRight
-                      className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
-                      aria-hidden
-                    />
-                  </button>
-                ))}
+            ))}
+            {loading && (
+              <div>
+                <p className="lower mb-3 font-mono text-xs text-primary">pensioniq</p>
+                <span className="lower font-mono text-sm text-muted-foreground">thinking…</span>
               </div>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4">
-              {messages.map((message, i) => (
-                <div
-                  key={i}
-                  className={`flex gap-2.5 ${message.role === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  {message.role === "assistant" && (
-                    <span className="icon-tile mt-0.5 size-7 shrink-0 text-chart-5">
-                      <Sparkles className="h-3.5 w-3.5" aria-hidden />
-                    </span>
-                  )}
-                  <div
-                    className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                      message.role === "user"
-                        ? "rounded-br-sm bg-primary text-primary-foreground"
-                        : "rounded-bl-sm bg-muted"
-                    }`}
-                  >
-                    {message.content}
-                  </div>
-                </div>
-              ))}
-              {loading && (
-                <div className="flex items-center gap-2.5">
-                  <span className="icon-tile size-7 shrink-0 text-chart-5">
-                    <Sparkles className="h-3.5 w-3.5" aria-hidden />
-                  </span>
-                  <div className="flex items-center gap-1 rounded-2xl rounded-bl-sm bg-muted px-4 py-3">
-                    {[0, 150, 300].map((delay) => (
-                      <span
-                        key={delay}
-                        className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/60"
-                        style={{ animationDelay: `${delay}ms` }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div ref={endRef} />
-            </div>
-          )}
+            )}
+            <div ref={endRef} />
+          </div>
+        )}
 
-          {error && (
-            <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {error}
-            </p>
-          )}
-        </CardContent>
-      </Card>
+        {error && <p className="lower mt-6 font-mono text-xs text-destructive">{error}</p>}
+      </div>
 
       <form
         onSubmit={(e) => {
           e.preventDefault();
           send(input);
         }}
-        className="flex items-end gap-2 rounded-xl border bg-card p-2 shadow-soft focus-within:border-primary/40"
+        className="flex items-end gap-4 border-t border-border pt-6"
       >
         <Textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="e.g. I'm 40 and want a balanced, low-fee fund…"
+          placeholder="e.g. i'm 40 and want a balanced, low-fee fund…"
           rows={2}
           maxLength={1000}
-          className="resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
+          className="lower min-h-[3.5rem] resize-none rounded-none border-0 border-b border-transparent bg-transparent px-0 text-base shadow-none placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-0"
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
@@ -166,19 +147,18 @@ export function ChatInterface() {
             }
           }}
         />
-        <Button
+        <button
           type="submit"
-          size="icon"
           disabled={loading || !input.trim()}
-          aria-label="Send message"
+          className="lower pill inline-flex shrink-0 items-center gap-2 rounded-full px-5 py-3 text-sm transition-colors hover:text-primary disabled:opacity-40"
         >
-          <Send className="h-4 w-4" />
-        </Button>
+          send <span aria-hidden>↗</span>
+        </button>
       </form>
 
-      <p className="text-xs text-muted-foreground">
-        Press Enter to send, Shift + Enter for a new line. Not regulated financial advice —
-        always speak to a qualified advisor before making pension decisions.
+      <p className="lower mt-5 font-mono text-xs leading-relaxed text-muted-foreground">
+        enter to send, shift + enter for a new line. not regulated financial advice — always speak
+        to a qualified advisor before making pension decisions.
       </p>
     </div>
   );

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/layout/page-header";
+import { PageIntro } from "@/components/editorial/page-intro";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
@@ -8,22 +8,23 @@ export const metadata: Metadata = {
 
 const LAST_UPDATED = "2026-08-19";
 
-const placeholder =
-  "rounded bg-warning/15 px-1 py-0.5 font-medium text-warning ring-1 ring-inset ring-warning/25";
+const placeholder = "text-warning";
 
 export default function PrivacyPage() {
   return (
     <>
-      <PageHeader
-        eyebrow={<span>Last updated: {LAST_UPDATED}</span>}
-        title="Privacy Policy"
-        description="How PensionIQ collects, uses and protects your data."
+      <PageIntro
+        label="privacy"
+        lines={["what we hold,", "and why."]}
+        tone="slate"
+        corners={{ left: `last updated ${LAST_UPDATED}`, right: "gdpr" }}
+        lead="how pensioniq collects, uses and protects your data."
       />
 
-      <div className="container-page max-w-3xl py-10">
+      <div className="container-page max-w-3xl px-6 py-14 md:px-10 md:py-20">
       <div className="prose prose-sm max-w-none space-y-8 text-sm leading-relaxed text-foreground [&_h2]:scroll-mt-24">
         <section>
-          <p className="rounded-xl border border-dashed border-warning/50 bg-warning/10 p-4 text-foreground">
+          <p className="border-l-2 border-warning py-1 pl-4 text-foreground">
             <strong>Draft notice:</strong> this policy contains placeholder text (marked
             <code className="mx-1">[PLACEHOLDER]</code>) that must be filled in with real
             company and contact details, and reviewed by a qualified professional, before
@@ -32,7 +33,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold">1. Who we are</h2>
+          <h2 className="lower font-heading text-2xl tracking-tight">1. Who we are</h2>
           <p>
             PensionIQ (&quot;we&quot;, &quot;us&quot;) is the data controller for
             information collected through this site. We are{" "}
@@ -45,7 +46,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold">2. What we collect</h2>
+          <h2 className="lower font-heading text-2xl tracking-tight">2. What we collect</h2>
           <ul className="list-disc space-y-1 pl-5">
             <li>
               <strong>Account data:</strong> name and email address, when you sign up
@@ -68,7 +69,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold">3. Why we process it, and our legal basis</h2>
+          <h2 className="lower font-heading text-2xl tracking-tight">3. Why we process it, and our legal basis</h2>
           <ul className="list-disc space-y-1 pl-5">
             <li>Account data — to provide the service you sign up for (contract).</li>
             <li>
@@ -82,7 +83,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold">4. Who we share data with</h2>
+          <h2 className="lower font-heading text-2xl tracking-tight">4. Who we share data with</h2>
           <p>
             We use the following processors to run PensionIQ. We do not sell your data.
           </p>
@@ -122,7 +123,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold">5. Cookies</h2>
+          <h2 className="lower font-heading text-2xl tracking-tight">5. Cookies</h2>
           <p>
             We use strictly necessary cookies to run the site (e.g. keeping you logged
             in) and, only with your consent, optional analytics cookies. You can change
@@ -132,7 +133,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold">6. Your rights</h2>
+          <h2 className="lower font-heading text-2xl tracking-tight">6. Your rights</h2>
           <p>Under GDPR, you have the right to:</p>
           <ul className="list-disc space-y-1 pl-5">
             <li>Access the data we hold about you (Settings → Export my data)</li>
@@ -159,7 +160,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold">7. Data retention</h2>
+          <h2 className="lower font-heading text-2xl tracking-tight">7. Data retention</h2>
           <p>
             <span className={placeholder}>
               [PLACEHOLDER: define how long account data, and AI Suggestions logs (if any
@@ -170,7 +171,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold">8. Children</h2>
+          <h2 className="lower font-heading text-2xl tracking-tight">8. Children</h2>
           <p>
             PensionIQ is intended for adults planning retirement and is not directed at
             children. We do not knowingly collect data from anyone under 16.
@@ -178,7 +179,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold">9. Changes to this policy</h2>
+          <h2 className="lower font-heading text-2xl tracking-tight">9. Changes to this policy</h2>
           <p>
             We&apos;ll update the &quot;Last updated&quot; date above if this policy
             changes materially.

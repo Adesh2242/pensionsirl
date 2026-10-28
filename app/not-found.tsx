@@ -1,24 +1,22 @@
 import Link from "next/link";
-import { Compass } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
 
 export default function NotFound() {
   return (
-    <div className="container-page flex min-h-[60vh] max-w-md flex-col items-center justify-center text-center">
-      <div className="icon-tile size-14 text-chart-1">
-        <Compass className="h-6 w-6" aria-hidden />
-      </div>
-      <p className="tabular mt-6 text-sm font-medium text-muted-foreground">404</p>
-      <h1 className="mt-2 text-2xl font-semibold">Page not found</h1>
-      <p className="mt-2 text-muted-foreground">
-        The page you&apos;re looking for doesn&apos;t exist or may have moved.
+    <div className="container-page flex min-h-[70svh] max-w-3xl flex-col justify-center px-6 py-24 md:px-10">
+      <p className="lower font-mono text-xs text-primary">▸ 404</p>
+      <h1 className="lower mt-8 font-heading text-[12vw] leading-[0.95] tracking-tight md:text-[5vw]">
+        that page
+        <span className="block pl-[12%]">isn&apos;t here.</span>
+      </h1>
+      <p className="lower mt-8 max-w-md text-sm text-muted-foreground">
+        the link may be old, or the fund may have been renamed by its provider.
       </p>
-      <div className="mt-6 flex gap-3">
-        <Link href="/" className={buttonVariants()}>
-          Go home
+      <div className="mt-10 flex flex-wrap gap-x-8 gap-y-3 border-t border-border pt-6">
+        <Link href="/" className="lower link-underline font-mono text-xs text-muted-foreground hover:text-foreground">
+          go home ↗
         </Link>
-        <Link href="/funds" className={buttonVariants({ variant: "outline" })}>
-          Browse funds
+        <Link href="/funds" className="lower link-underline font-mono text-xs text-muted-foreground hover:text-foreground">
+          browse all funds ↗
         </Link>
       </div>
     </div>

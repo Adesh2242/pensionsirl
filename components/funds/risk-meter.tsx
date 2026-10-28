@@ -11,7 +11,7 @@ const TIER_FILL: Record<number, string> = {
 };
 
 /**
- * Seven-segment SRI meter. A number from 1–7 means little on its own; the
+ * Seven hairline segments. A number from 1–7 means little on its own; the
  * filled run makes "where this sits on the scale" readable at a glance.
  */
 export function RiskMeter({
@@ -33,8 +33,8 @@ export function RiskMeter({
         <span
           key={i}
           className={cn(
-            "flex-1 rounded-full transition-colors",
-            size === "sm" ? "h-1" : "h-1.5",
+            "flex-1 transition-colors",
+            size === "sm" ? "h-px" : "h-0.5",
             i < risk ? TIER_FILL[risk] : "bg-border",
           )}
         />

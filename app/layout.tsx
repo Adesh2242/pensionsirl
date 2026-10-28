@@ -5,7 +5,6 @@ import { AuthProvider } from "@/lib/auth-context";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { CookieBanner } from "@/components/layout/cookie-banner";
-import { ThemeScript } from "@/components/theme/theme-script";
 import { SITE_URL } from "@/lib/site";
 
 const geistSans = Geist({
@@ -52,12 +51,9 @@ export const metadata: Metadata = {
   },
 };
 
-// Matches the light/dark --background tokens so mobile browser chrome blends in.
+// Matches the near-black canvas so mobile browser chrome blends into the page.
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fbfdff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0e131b" },
-  ],
+  themeColor: "#050505",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -67,19 +63,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <head>
-        <ThemeScript />
-      </head>
       <body className="flex min-h-full flex-col">
         <a
           href="#main"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground"
+          className="lower sr-only font-mono focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-full focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:text-primary-foreground"
         >
-          Skip to content
+          skip to content
         </a>
         <AuthProvider>
           <Navbar />
-          <main id="main" className="flex-1">
+          <main id="main" className="animate-page-in flex-1">
             {children}
           </main>
           <Footer />

@@ -3,43 +3,32 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, Menu, PiggyBank, Settings, Wallet } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { useAuth } from "@/lib/auth-context";
-import { cn } from "@/lib/utils";
 
-const links = [
-  { href: "/funds", label: "Funds" },
-  { href: "/compare", label: "Compare" },
-  { href: "/calculator", label: "Calculator" },
-  { href: "/ai-suggestions", label: "AI Suggestions" },
-  { href: "/how-it-works", label: "How it Works" },
-];
+const primaryLinks = [
+  { href: "/funds", label: "funds" },
+  { href: "/compare", label: "compare" },
+] as const;
 
-export function Brand({ className }: { className?: string }) {
+const secondaryLinks = [
+  { href: "/calculator", label: "calculator" },
+  { href: "/ai-suggestions", label: "ai" },
+] as const;
+
+const allLinks = [
+  { href: "/", label: "home" },
+  { href: "/funds", label: "funds" },
+  { href: "/compare", label: "compare" },
+  { href: "/calculator", label: "calculator" },
+  { href: "/ai-suggestions", label: "ai suggestions" },
+  { href: "/how-it-works", label: "how it works" },
+] as const;
+
+export function Wordmark({ className = "" }: { className?: string }) {
   return (
-    <span className={cn("flex items-center gap-2.5", className)}>
-      <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-soft">
-        <PiggyBank className="h-4.5 w-4.5" aria-hidden />
-      </span>
-      <span className="text-[0.975rem] font-semibold tracking-tight">PensionIQ</span>
+    <span className={`lower block font-heading leading-[0.95] tracking-tight ${className}`}>
+      <span className="block">pension</span>
+      <span className="block text-primary">iq</span>
     </span>
   );
 }
@@ -47,189 +36,185 @@ export function Brand({ className }: { className?: string }) {
 export function Navbar() {
   const pathname = usePathname();
   const { user, loading, signOut } = useAuth();
+  const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
-  // The header starts flush with the hero and only grows a border/shadow once
-  // content is scrolling underneath it.
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
+    const onScroll = () => setScrolled(window.scrollY > 24);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const initial = (user?.name ?? user?.email ?? "?")[0]?.toUpperCase();
+  // Don't let the page scroll behind the open overlay.
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" : pathname?.startsWith(href);
 
   return (
-    <header
-      className={cn(
-        "sticky top-0 z-40 transition-shadow duration-200",
-        "bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/65",
-        scrolled ? "border-b shadow-soft" : "border-b border-transparent",
-      )}
-    >
-      <div className="container-page flex h-16 items-center justify-between gap-4">
-        <Link href="/" className="rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
-          <Brand />
-        </Link>
-
-        <nav className="hidden items-center gap-1 md:flex">
-          {links.map((link) => {
-            const active = pathname === link.href || pathname?.startsWith(`${link.href}/`);
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "rounded-lg px-3 py-1.5 text-sm transition-colors",
-                  active
-                    ? "bg-accent font-medium text-accent-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                )}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="flex items-center gap-1.5">
-          <ThemeToggle />
-          <div className="hidden items-center gap-2 md:flex">
-            {!loading && user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  render={<Button variant="ghost" size="sm" className="gap-2 pl-1" />}
+    <>
+      <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4 md:px-6">
+        <div className="mx-auto flex max-w-[1600px] justify-center">
+          <div
+            className={`pill flex items-center gap-5 rounded-full px-5 py-2.5 transition-all duration-500 md:gap-8 md:px-7 ${
+              scrolled ? "shadow-[0_8px_40px_-12px_rgba(0,0,0,0.8)]" : ""
+            }`}
+          >
+            <nav className="hidden items-center gap-6 md:flex">
+              {primaryLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  data-active={isActive(link.href) ? "true" : undefined}
+                  className={`lower link-underline text-xs transition-colors hover:text-foreground ${
+                    isActive(link.href) ? "text-foreground" : "text-muted-foreground"
+                  }`}
                 >
-                  <Avatar className="h-6 w-6">
-                    <AvatarFallback className="bg-primary/12 text-xs font-semibold text-primary">
-                      {initial}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="max-w-[12ch] truncate">{user.name ?? user.email}</span>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="min-w-48">
-                  <DropdownMenuItem render={<Link href="/portfolio" />}>
-                    <Wallet className="h-4 w-4" aria-hidden />
-                    My portfolio
-                  </DropdownMenuItem>
-                  <DropdownMenuItem render={<Link href="/settings" />}>
-                    <Settings className="h-4 w-4" aria-hidden />
-                    Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => signOut()}>
-                    <LogOut className="h-4 w-4" aria-hidden />
-                    Log out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+
+            <Link href="/" className="shrink-0 text-center text-sm" aria-label="PensionIQ — home">
+              <Wordmark />
+            </Link>
+
+            <nav className="hidden items-center gap-6 md:flex">
+              {secondaryLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  data-active={isActive(link.href) ? "true" : undefined}
+                  className={`lower link-underline text-xs transition-colors hover:text-foreground ${
+                    isActive(link.href) ? "text-foreground" : "text-muted-foreground"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+
+            <button
+              type="button"
+              onClick={() => setOpen(!open)}
+              aria-label={open ? "Close menu" : "Open menu"}
+              aria-expanded={open}
+              className="grid h-6 w-6 shrink-0 grid-cols-2 place-content-center gap-1"
+            >
+              {[0, 1, 2, 3].map((i) => (
+                <span
+                  key={i}
+                  className={`block h-1 w-1 rounded-full bg-foreground transition-transform duration-500 ${
+                    open ? "scale-150" : ""
+                  }`}
+                />
+              ))}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Full-screen menu */}
+      <div
+        className={`fixed inset-0 z-40 transition-opacity duration-500 ${
+          open ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+      >
+        <button
+          className="absolute inset-0 h-full w-full cursor-default bg-background/95 backdrop-blur-xl"
+          onClick={() => setOpen(false)}
+          aria-label="Close menu"
+          tabIndex={open ? 0 : -1}
+        />
+        <div className="relative flex h-full flex-col justify-center px-8 md:px-16">
+          <ul className="space-y-1">
+            {allLinks.map((link, i) => (
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  onClick={() => setOpen(false)}
+                  tabIndex={open ? 0 : -1}
+                  className="lower block font-heading text-4xl tracking-tight text-muted-foreground transition-all duration-500 hover:translate-x-3 hover:text-foreground md:text-6xl"
+                  style={{
+                    transitionDelay: open ? `${i * 45}ms` : "0ms",
+                    opacity: open ? 1 : 0,
+                    transform: open ? "none" : "translateY(18px)",
+                  }}
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+
+          <div className="lower mt-14 flex flex-wrap items-center gap-x-8 gap-y-3 font-mono text-sm">
+            {!loading && user ? (
+              <>
+                <Link
+                  href="/portfolio"
+                  onClick={() => setOpen(false)}
+                  tabIndex={open ? 0 : -1}
+                  className="text-muted-foreground transition-colors hover:text-primary"
+                >
+                  my portfolio ↗
+                </Link>
+                <Link
+                  href="/settings"
+                  onClick={() => setOpen(false)}
+                  tabIndex={open ? 0 : -1}
+                  className="text-muted-foreground transition-colors hover:text-primary"
+                >
+                  settings ↗
+                </Link>
+                <button
+                  onClick={() => {
+                    setOpen(false);
+                    signOut();
+                  }}
+                  tabIndex={open ? 0 : -1}
+                  className="lower text-muted-foreground transition-colors hover:text-primary"
+                >
+                  log out
+                </button>
+              </>
             ) : (
               <>
-                <Link href="/login" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-                  Log in
+                <Link
+                  href="/login"
+                  onClick={() => setOpen(false)}
+                  tabIndex={open ? 0 : -1}
+                  className="text-muted-foreground transition-colors hover:text-primary"
+                >
+                  log in ↗
                 </Link>
-                <Link href="/signup" className={buttonVariants({ size: "sm" })}>
-                  Sign up
+                <Link
+                  href="/signup"
+                  onClick={() => setOpen(false)}
+                  tabIndex={open ? 0 : -1}
+                  className="text-muted-foreground transition-colors hover:text-primary"
+                >
+                  create an account ↗
                 </Link>
               </>
             )}
           </div>
-
-          <Sheet>
-            <SheetTrigger
-              render={
-                <Button variant="ghost" size="icon-sm" className="md:hidden" aria-label="Open menu" />
-              }
-            >
-              <Menu className="h-5 w-5" />
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[min(20rem,85vw)]">
-              <SheetHeader>
-                <SheetTitle className="text-left">
-                  <Brand />
-                </SheetTitle>
-              </SheetHeader>
-              <nav className="flex flex-col gap-1 px-4">
-                {links.map((link) => {
-                  const active = pathname === link.href || pathname?.startsWith(`${link.href}/`);
-                  return (
-                    <SheetClose
-                      key={link.href}
-                      nativeButton={false}
-                      render={
-                        <Link
-                          href={link.href}
-                          className={cn(
-                            "rounded-lg px-3 py-2.5 text-sm transition-colors",
-                            active
-                              ? "bg-accent font-medium text-accent-foreground"
-                              : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                          )}
-                        />
-                      }
-                    >
-                      {link.label}
-                    </SheetClose>
-                  );
-                })}
-                <div className="mt-3 flex flex-col gap-2 border-t pt-4">
-                  {!loading && user ? (
-                    <>
-                      <SheetClose
-                        nativeButton={false}
-                        render={
-                          <Link
-                            href="/portfolio"
-                            className="rounded-lg px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
-                          />
-                        }
-                      >
-                        My portfolio
-                      </SheetClose>
-                      <SheetClose
-                        nativeButton={false}
-                        render={
-                          <Link
-                            href="/settings"
-                            className="rounded-lg px-3 py-2.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
-                          />
-                        }
-                      >
-                        Settings
-                      </SheetClose>
-                      <Button variant="outline" size="sm" onClick={() => signOut()}>
-                        Log out
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <SheetClose
-                        nativeButton={false}
-                        render={
-                          <Link
-                            href="/login"
-                            className={buttonVariants({ variant: "outline", size: "lg" })}
-                          />
-                        }
-                      >
-                        Log in
-                      </SheetClose>
-                      <SheetClose
-                        nativeButton={false}
-                        render={<Link href="/signup" className={buttonVariants({ size: "lg" })} />}
-                      >
-                        Sign up
-                      </SheetClose>
-                    </>
-                  )}
-                </div>
-              </nav>
-            </SheetContent>
-          </Sheet>
         </div>
       </div>
-    </header>
+    </>
   );
 }

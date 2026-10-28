@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 
 function GoogleLogo() {
@@ -43,17 +42,15 @@ export function GoogleSignInButton() {
   }
 
   return (
-    <Button
+    <button
       type="button"
-      variant="outline"
-      size="lg"
-      className="h-10 w-full"
+      className="lower flex w-full items-center justify-center gap-3 rounded-full border border-border px-6 py-3.5 text-sm transition-colors hover:border-foreground/30 hover:text-primary disabled:opacity-40"
       disabled={!configured || loading}
       title={configured ? undefined : "Available once Supabase is connected"}
       onClick={handleClick}
     >
       <GoogleLogo />
-      {loading ? "Redirecting…" : "Continue with Google"}
-    </Button>
+      {loading ? "redirecting…" : "continue with google"}
+    </button>
   );
 }

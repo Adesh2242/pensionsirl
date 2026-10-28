@@ -3,12 +3,8 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MailCheck, TriangleAlert } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { FormField } from "@/components/auth/form-field";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 
@@ -53,100 +49,86 @@ export default function SignupPage() {
   if (confirmEmailSent) {
     return (
       <AuthShell
-        title="Check your email"
+        label="almost there"
+        lines={["check your", "email."]}
         description={
           <>
-            We sent a confirmation link to <strong className="text-foreground">{email}</strong>.
-            Click it to activate your account, then log in.
+            we sent a confirmation link to{" "}
+            <span className="text-foreground">{email}</span>. click it to activate your account,
+            then log in.
           </>
         }
       >
-        <div className="flex flex-col items-center gap-5 py-2 text-center">
-          <div className="icon-tile size-14 text-primary">
-            <MailCheck className="h-6 w-6" aria-hidden />
-          </div>
-          <Link href="/login" className={buttonVariants({ size: "lg", className: "h-10 w-full" })}>
-            Go to log in
-          </Link>
-        </div>
+        <Link
+          href="/login"
+          className="lower pill inline-flex w-full items-center justify-center gap-3 rounded-full px-6 py-3.5 text-sm transition-colors hover:text-primary"
+        >
+          go to log in <span aria-hidden>↗</span>
+        </Link>
       </AuthShell>
     );
   }
 
   return (
     <AuthShell
-      title="Create your account"
+      label="sign up"
+      lines={["start", "tracking."]}
       description={
         isSupabaseConfigured()
-          ? "Track funds, save comparisons and get monthly value estimates."
-          : "Demo mode — accounts are stored in your browser only, nothing leaves this device."
+          ? "track funds, save comparisons and get monthly value estimates."
+          : "demo mode — accounts are stored in your browser only, nothing leaves this device."
       }
       footer={
         <>
-          Already have an account?{" "}
-          <Link
-            href="/login"
-            className="font-medium text-foreground underline underline-offset-4 hover:text-primary"
-          >
-            Log in
+          already have an account?{" "}
+          <Link href="/login" className="link-underline text-foreground">
+            log in
           </Link>
         </>
       }
     >
       <GoogleSignInButton />
-      <div className="my-5 flex items-center gap-3">
-        <Separator className="flex-1" />
-        <span className="text-xs text-muted-foreground">or sign up with email</span>
-        <Separator className="flex-1" />
-      </div>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="name">Name</Label>
-          <Input
-            id="name"
-            autoComplete="name"
-            className="h-10"
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            autoComplete="email"
-            placeholder="you@example.ie"
-            className="h-10"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            type="password"
-            autoComplete="new-password"
-            className="h-10"
-            required
-            minLength={8}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <p className="text-xs text-muted-foreground">At least 8 characters.</p>
-        </div>
-        {error && (
-          <p className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-            {error}
-          </p>
-        )}
-        <Button type="submit" size="lg" className="h-10 w-full" disabled={loading}>
-          {loading ? "Creating account…" : "Create account"}
-        </Button>
+      <p className="lower my-7 font-mono text-xs text-muted-foreground">or sign up with email</p>
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <FormField
+          id="name"
+          label="name"
+          autoComplete="name"
+          required
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <FormField
+          id="email"
+          label="email"
+          type="email"
+          autoComplete="email"
+          placeholder="you@example.ie"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <FormField
+          id="password"
+          label="password"
+          type="password"
+          autoComplete="new-password"
+          required
+          minLength={8}
+          hint="at least 8 characters"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        {error && <p className="lower font-mono text-xs text-destructive">{error}</p>}
+        <button
+          type="submit"
+          disabled={loading}
+          className="lower pill inline-flex w-full items-center justify-center gap-3 rounded-full px-6 py-3.5 text-sm transition-colors hover:text-primary disabled:opacity-50"
+        >
+          {loading ? "creating account…" : "create account"}
+          <span aria-hidden>↗</span>
+        </button>
       </form>
     </AuthShell>
   );
