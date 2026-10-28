@@ -3,12 +3,8 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { TriangleAlert } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { AuthShell } from "@/components/auth/auth-shell";
+import { FormField } from "@/components/auth/form-field";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 
@@ -36,62 +32,54 @@ export default function LoginPage() {
 
   return (
     <AuthShell
-      title="Welcome back"
+      label="log in"
+      lines={["welcome", "back."]}
       description={
         isSupabaseConfigured()
-          ? "Log in to your PensionIQ account."
-          : "Demo mode — accounts are stored in your browser only."
+          ? "log in to your pensioniq account."
+          : "demo mode — accounts are stored in your browser only."
       }
       footer={
         <>
-          Don&apos;t have an account?{" "}
-          <Link href="/signup" className="font-medium text-foreground underline underline-offset-4 hover:text-primary">
-            Sign up
+          no account yet?{" "}
+          <Link href="/signup" className="link-underline text-foreground">
+            create one
           </Link>
         </>
       }
     >
       <GoogleSignInButton />
-      <div className="my-5 flex items-center gap-3">
-        <Separator className="flex-1" />
-        <span className="text-xs text-muted-foreground">or continue with email</span>
-        <Separator className="flex-1" />
-      </div>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            autoComplete="email"
-            placeholder="you@example.ie"
-            className="h-10"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            className="h-10"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
-        {error && (
-          <p className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-            {error}
-          </p>
-        )}
-        <Button type="submit" size="lg" className="h-10 w-full" disabled={loading}>
-          {loading ? "Logging in…" : "Log in"}
-        </Button>
+      <p className="lower my-7 font-mono text-xs text-muted-foreground">or continue with email</p>
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <FormField
+          id="email"
+          label="email"
+          type="email"
+          autoComplete="email"
+          placeholder="you@example.ie"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <FormField
+          id="password"
+          label="password"
+          type="password"
+          autoComplete="current-password"
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        {error && <p className="lower font-mono text-xs text-destructive">{error}</p>}
+        <button
+          type="submit"
+          disabled={loading}
+          className="lower pill inline-flex w-full items-center justify-center gap-3 rounded-full px-6 py-3.5 text-sm transition-colors hover:text-primary disabled:opacity-50"
+        >
+          {loading ? "logging in…" : "log in"}
+          <span aria-hidden>↗</span>
+        </button>
       </form>
     </AuthShell>
   );

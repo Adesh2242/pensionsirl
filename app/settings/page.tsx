@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Download, Mail, TriangleAlert, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -19,7 +18,8 @@ import { useAuth } from "@/lib/auth-context";
 import { createClient } from "@/lib/supabase/client";
 import { readConsent } from "@/lib/consent";
 import { listTrackedFunds } from "@/lib/portfolio/store";
-import { PageHeader } from "@/components/layout/page-header";
+import { PageIntro } from "@/components/editorial/page-intro";
+import { SectionLabel } from "@/components/editorial/section-label";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function SettingsPage() {
@@ -40,11 +40,9 @@ export default function SettingsPage() {
 
   if (loading || !user) {
     return (
-      <div className="container-page max-w-2xl py-12">
-        <Skeleton className="h-9 w-40" />
-        <Skeleton className="mt-3 h-5 w-72" />
-        <Skeleton className="mt-8 h-44 rounded-xl" />
-        <Skeleton className="mt-6 h-40 rounded-xl" />
+      <div className="container-page max-w-3xl px-6 py-32 md:px-10">
+        <p className="lower font-mono text-xs text-muted-foreground">loading your settings…</p>
+        <Skeleton className="mt-8 h-32 rounded-none" />
       </div>
     );
   }
@@ -106,64 +104,65 @@ export default function SettingsPage() {
 
   return (
     <>
-      <PageHeader title="Settings" description="Manage your account and your data." />
+      <PageIntro
+        label="settings"
+        lines={["your account,", "your data."]}
+        tone="slate"
+        corners={{ left: isMockMode ? "demo mode" : "live account", right: "gdpr export & delete" }}
+      />
 
-      <div className="container-page max-w-2xl py-10">
-      <Card className="shadow-soft">
-        <CardHeader className="border-b">
-          <CardTitle className="text-base">Profile</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-5 text-sm">
-          <dl className="space-y-3">
-            <div className="flex items-center gap-3">
-              <span className="icon-tile size-9 text-muted-foreground">
-                <User className="h-4 w-4" aria-hidden />
-              </span>
-              <div>
-                <dt className="text-xs text-muted-foreground">Name</dt>
-                <dd className="font-medium">{user.name ?? "—"}</dd>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="icon-tile size-9 text-muted-foreground">
-                <Mail className="h-4 w-4" aria-hidden />
-              </span>
-              <div className="min-w-0">
-                <dt className="text-xs text-muted-foreground">Email</dt>
-                <dd className="truncate font-medium">{user.email}</dd>
-              </div>
-            </div>
-          </dl>
-          {isMockMode && (
-            <p className="mt-4 rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
-              Demo mode: your account only exists in this browser&apos;s local storage.
-            </p>
-          )}
-          <Button variant="outline" size="sm" className="mt-4" onClick={() => signOut()}>
-            Log out
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="container-page max-w-3xl px-6 py-14 md:px-10 md:py-20">
+      <SectionLabel>profile</SectionLabel>
+      <dl className="mt-8 border-t border-border">
+        <div className="flex items-baseline justify-between gap-6 border-b border-border py-5">
+          <dt className="lower flex items-center gap-3 font-mono text-xs text-muted-foreground">
+            <User className="h-3.5 w-3.5" aria-hidden />
+            name
+          </dt>
+          <dd className="lower font-heading text-lg">{user.name ?? "—"}</dd>
+        </div>
+        <div className="flex items-baseline justify-between gap-6 border-b border-border py-5">
+          <dt className="lower flex items-center gap-3 font-mono text-xs text-muted-foreground">
+            <Mail className="h-3.5 w-3.5" aria-hidden />
+            email
+          </dt>
+          <dd className="truncate font-heading text-lg">{user.email}</dd>
+        </div>
+      </dl>
+      {isMockMode && (
+        <p className="lower mt-5 font-mono text-xs text-muted-foreground">
+          demo mode: your account only exists in this browser&apos;s local storage.
+        </p>
+      )}
+      <button
+        onClick={() => signOut()}
+        className="lower link-underline mt-6 font-mono text-xs text-muted-foreground hover:text-foreground"
+      >
+        log out ↗
+      </button>
 
-      <Card className="mt-6 shadow-soft">
-        <CardHeader>
-          <CardTitle className="text-base">Your data (GDPR)</CardTitle>
-          <CardDescription>Export everything we hold about you, or delete your account.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap items-start gap-3">
-          <div>
-            <Button variant="outline" onClick={exportData} disabled={exporting}>
-              <Download className="h-4 w-4" />
-              {exporting ? "Exporting…" : "Export my data"}
-            </Button>
-            {exportError && <p className="mt-2 text-xs text-destructive">{exportError}</p>}
-          </div>
-          <Button variant="destructive" onClick={() => setConfirmOpen(true)}>
-            <TriangleAlert className="h-4 w-4" />
-            Delete account
-          </Button>
-        </CardContent>
-      </Card>
+      <SectionLabel className="mt-16">your data (gdpr)</SectionLabel>
+      <p className="lower mt-6 max-w-lg text-sm text-muted-foreground">
+        export everything we hold about you, or delete your account for good.
+      </p>
+      <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-4 border-t border-border pt-6">
+        <button
+          onClick={exportData}
+          disabled={exporting}
+          className="lower pill inline-flex items-center gap-3 rounded-full px-6 py-3.5 text-sm transition-colors hover:text-primary disabled:opacity-50"
+        >
+          <Download className="h-4 w-4" aria-hidden />
+          {exporting ? "exporting…" : "export my data"}
+        </button>
+        <button
+          onClick={() => setConfirmOpen(true)}
+          className="lower link-underline inline-flex items-center gap-2 font-mono text-xs text-destructive"
+        >
+          <TriangleAlert className="h-3.5 w-3.5" aria-hidden />
+          delete account
+        </button>
+        {exportError && <p className="lower font-mono text-xs text-destructive">{exportError}</p>}
+      </div>
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>

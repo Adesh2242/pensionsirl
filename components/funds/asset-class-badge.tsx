@@ -1,23 +1,32 @@
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { AssetClass } from "@/lib/types";
 
-// Fixed hue per asset class (never cycled) so the same category always reads
-// as the same color across fund cards, filters, and the compare table.
-const ASSET_CLASS_STYLES: Record<AssetClass, string> = {
-  Equity: "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300",
-  Bond: "bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300",
-  Cash: "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300",
-  Property: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
-  "Multi-Asset": "bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-300",
-  Lifecycle: "bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300",
-  Alternative: "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300",
+/**
+ * Asset class as a mono micro-label. Categories are distinguished by the dot's
+ * colour rather than by seven competing pill backgrounds, which the editorial
+ * surface can't carry.
+ */
+const DOT: Record<AssetClass, string> = {
+  Equity: "bg-primary",
+  Bond: "bg-slate",
+  Cash: "bg-success",
+  Property: "bg-sun",
+  "Multi-Asset": "bg-warm",
+  Lifecycle: "bg-[#9b8ad1]",
+  Alternative: "bg-[#c77d9b]",
 };
 
-export function AssetClassBadge({ assetClass }: { assetClass: AssetClass }) {
+export function AssetClassBadge({
+  assetClass,
+  className,
+}: {
+  assetClass: AssetClass;
+  className?: string;
+}) {
   return (
-    <Badge variant="secondary" className={cn("font-medium", ASSET_CLASS_STYLES[assetClass])}>
+    <span className={cn("lower inline-flex items-center gap-1.5 font-mono text-xs", className)}>
+      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", DOT[assetClass])} aria-hidden />
       {assetClass}
-    </Badge>
+    </span>
   );
 }

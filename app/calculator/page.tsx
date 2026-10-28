@@ -1,8 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import { Info, PiggyBank, TrendingDown, TrendingUp } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -13,7 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PageHeader } from "@/components/layout/page-header";
+import { PageIntro } from "@/components/editorial/page-intro";
+import { Reveal } from "@/components/editorial/reveal";
+import { SectionLabel } from "@/components/editorial/section-label";
 import { ProjectionChart } from "@/components/calculator/projection-chart";
 import { calculateProjection } from "@/lib/calculations";
 import { formatEuro } from "@/lib/utils";
@@ -36,11 +37,11 @@ const DEFAULTS: CalculatorInput = {
 };
 
 const TAX_RATE_LABELS: Record<string, string> = {
-  "20": "20% (standard rate)",
-  "40": "40% (higher rate)",
+  "20": "20% standard rate",
+  "40": "40% higher rate",
 };
 
-/** A slider with its current value shown as a pill, so the number is always readable. */
+/** A slider with its value shown in mono, so the number is always readable. */
 function SliderField({
   label,
   value,
@@ -59,12 +60,10 @@ function SliderField({
   onChange: (value: number) => void;
 }) {
   return (
-    <div className="space-y-2.5">
-      <div className="flex items-center justify-between gap-2">
-        <Label className="text-sm">{label}</Label>
-        <span className="tabular rounded-md bg-muted px-2 py-0.5 text-xs font-semibold">
-          {display}
-        </span>
+    <div className="border-t border-border py-5">
+      <div className="flex items-baseline justify-between gap-3">
+        <Label className="lower font-mono text-xs text-muted-foreground">{label}</Label>
+        <span className="tabular font-heading text-lg">{display}</span>
       </div>
       <Slider
         min={min}
@@ -73,6 +72,7 @@ function SliderField({
         value={[value]}
         onValueChange={(v) => onChange(firstOf(v))}
         aria-label={label}
+        className="mt-4"
       />
     </div>
   );
@@ -90,20 +90,18 @@ function EuroField({
   onChange: (value: number) => void;
 }) {
   return (
-    <div className="space-y-2">
-      <Label htmlFor={id} className="text-sm">
+    <div className="border-t border-border py-5">
+      <Label htmlFor={id} className="lower font-mono text-xs text-muted-foreground">
         {label}
       </Label>
-      <div className="relative">
-        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-          €
-        </span>
+      <div className="mt-2 flex items-baseline gap-2">
+        <span className="font-heading text-lg text-muted-foreground">€</span>
         <Input
           id={id}
           type="number"
           min={0}
           inputMode="numeric"
-          className="tabular h-10 pl-7"
+          className="tabular h-10 rounded-none border-0 border-b border-transparent bg-transparent px-0 font-heading text-lg focus-visible:border-primary focus-visible:ring-0"
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
         />
@@ -114,11 +112,9 @@ function EuroField({
 
 function FieldGroup({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="space-y-5">
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        {title}
-      </h3>
-      {children}
+    <section className="mt-10 first:mt-0">
+      <SectionLabel>{title}</SectionLabel>
+      <div className="mt-4">{children}</div>
     </section>
   );
 }
@@ -137,223 +133,212 @@ export default function CalculatorPage() {
 
   const headline = [
     {
-      icon: PiggyBank,
-      tone: "text-chart-1",
-      label: `Projected pot at ${input.retirementAge}`,
+      no: "01",
+      label: `projected pot at ${input.retirementAge}`,
       value: formatEuro(result.projectedPot),
       detail: `${result.yearsToRetirement} years of contributions and growth`,
+      tone: "text-foreground",
     },
     {
-      icon: TrendingUp,
-      tone: "text-success",
-      label: "Tax relief saved this year",
+      no: "02",
+      label: "tax relief saved this year",
       value: formatEuro(result.annualTaxReliefSaved),
-      detail: `At your ${input.marginalTaxRatePct}% marginal rate`,
+      detail: `at your ${input.marginalTaxRatePct}% marginal rate`,
+      tone: "text-success",
     },
     {
-      icon: TrendingDown,
-      tone: "text-destructive",
-      label: "Charges paid over time",
+      no: "03",
+      label: "charges paid over time",
       value: formatEuro(result.totalFeesDrag),
-      detail: `${input.fundAmcPct.toFixed(2)}% AMC compounded to retirement`,
+      detail: `${input.fundAmcPct.toFixed(2)}% amc compounded to retirement`,
+      tone: "text-destructive",
     },
   ];
 
   const taxDetail = [
     {
-      label: `Age-related relief limit (age ${input.currentAge})`,
+      label: `age-related relief limit (age ${input.currentAge})`,
       value: `${result.ageRelatedLimitPct}% of earnings`,
     },
-    { label: "Earnings cap for relief", value: formatEuro(result.earningsCap) },
-    { label: "Max relievable contribution", value: formatEuro(result.maxRelievableContribution) },
-    { label: "Total contributions to retirement", value: formatEuro(result.totalContributions) },
+    { label: "earnings cap for relief", value: formatEuro(result.earningsCap) },
+    { label: "max relievable contribution", value: formatEuro(result.maxRelievableContribution) },
+    { label: "total contributions to retirement", value: formatEuro(result.totalContributions) },
   ];
 
   return (
     <>
-      <PageHeader
-        eyebrow={<span>Irish Revenue rules · {new Date().getFullYear()}</span>}
-        title="Retirement calculator"
-        description="Project your pension pot using Revenue's age-related tax relief limits and the €115,000 earnings cap. Figures are illustrative and not financial advice."
+      <PageIntro
+        label="calculator"
+        lines={["what your pot", "is actually worth."]}
+        tone="sun"
+        corners={{ left: "revenue age-related rules", right: "illustrative, not advice" }}
+        lead="project your pension using revenue's age-related relief limits and the €115,000 earnings cap — and see what your fund's charges take on the way."
       />
 
-      <div className="container-page py-10">
-        <div className="grid gap-6 lg:grid-cols-[22rem_1fr] xl:grid-cols-[24rem_1fr]">
-          {/* Inputs stay in view while the results update beside them. */}
-          <div className="lg:sticky lg:top-24 lg:self-start">
-            <Card className="shadow-soft">
-              <CardHeader className="border-b">
-                <CardTitle className="text-base">Your details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-7 pt-5">
-                <FieldGroup title="About you">
-                  <SliderField
-                    label="Current age"
-                    value={input.currentAge}
-                    display={String(input.currentAge)}
-                    min={18}
-                    max={69}
-                    onChange={(v) => update("currentAge", v)}
-                  />
-                  <SliderField
-                    label="Retirement age"
-                    value={input.retirementAge}
-                    display={String(input.retirementAge)}
-                    min={input.currentAge + 1}
-                    max={70}
-                    onChange={(v) => update("retirementAge", v)}
-                  />
-                  <EuroField
-                    id="salary"
-                    label="Annual salary"
-                    value={input.currentSalary}
-                    onChange={(v) => update("currentSalary", v)}
-                  />
-                  <EuroField
-                    id="pot"
-                    label="Current pension pot"
-                    value={input.currentPotValue}
-                    onChange={(v) => update("currentPotValue", v)}
-                  />
-                </FieldGroup>
+      <section className="px-6 py-14 md:px-10 md:py-20">
+        <div className="container-page grid gap-16 px-0 md:px-0 lg:grid-cols-[22rem_1fr] lg:gap-20 xl:grid-cols-[24rem_1fr]">
+          {/* Inputs stay in view while the figures update beside them */}
+          <div className="lg:sticky lg:top-28 lg:self-start">
+            <FieldGroup title="about you">
+              <SliderField
+                label="current age"
+                value={input.currentAge}
+                display={String(input.currentAge)}
+                min={18}
+                max={69}
+                onChange={(v) => update("currentAge", v)}
+              />
+              <SliderField
+                label="retirement age"
+                value={input.retirementAge}
+                display={String(input.retirementAge)}
+                min={input.currentAge + 1}
+                max={70}
+                onChange={(v) => update("retirementAge", v)}
+              />
+              <EuroField
+                id="salary"
+                label="annual salary"
+                value={input.currentSalary}
+                onChange={(v) => update("currentSalary", v)}
+              />
+              <EuroField
+                id="pot"
+                label="current pension pot"
+                value={input.currentPotValue}
+                onChange={(v) => update("currentPotValue", v)}
+              />
+            </FieldGroup>
 
-                <FieldGroup title="Contributions">
-                  <SliderField
-                    label="Your contribution"
-                    value={input.employeeContributionPct}
-                    display={`${input.employeeContributionPct}%`}
-                    min={0}
-                    max={40}
-                    onChange={(v) => update("employeeContributionPct", v)}
-                  />
-                  <SliderField
-                    label="Employer contribution"
-                    value={input.employerContributionPct}
-                    display={`${input.employerContributionPct}%`}
-                    min={0}
-                    max={20}
-                    onChange={(v) => update("employerContributionPct", v)}
-                  />
-                </FieldGroup>
+            <FieldGroup title="contributions">
+              <SliderField
+                label="your contribution"
+                value={input.employeeContributionPct}
+                display={`${input.employeeContributionPct}%`}
+                min={0}
+                max={40}
+                onChange={(v) => update("employeeContributionPct", v)}
+              />
+              <SliderField
+                label="employer contribution"
+                value={input.employerContributionPct}
+                display={`${input.employerContributionPct}%`}
+                min={0}
+                max={20}
+                onChange={(v) => update("employerContributionPct", v)}
+              />
+            </FieldGroup>
 
-                <FieldGroup title="Assumptions">
-                  <SliderField
-                    label="Assumed annual growth"
-                    value={input.assumedGrowthRatePct}
-                    display={`${input.assumedGrowthRatePct}%`}
-                    min={0}
-                    max={10}
-                    step={0.5}
-                    onChange={(v) => update("assumedGrowthRatePct", v)}
-                  />
-                  <SliderField
-                    label="Fund annual charge"
-                    value={input.fundAmcPct}
-                    display={`${input.fundAmcPct.toFixed(2)}%`}
-                    min={0}
-                    max={2}
-                    step={0.05}
-                    onChange={(v) => update("fundAmcPct", v)}
-                  />
-                  <div className="space-y-2">
-                    <Label className="text-sm">Marginal tax rate</Label>
-                    <Select
-                      value={String(input.marginalTaxRatePct)}
-                      onValueChange={(v) => v && update("marginalTaxRatePct", Number(v) as 20 | 40)}
-                    >
-                      <SelectTrigger className="h-10 w-full">
-                        <SelectValue>
-                          {(value: string) => TAX_RATE_LABELS[value] ?? value}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="20">20% (standard rate)</SelectItem>
-                        <SelectItem value="40">40% (higher rate)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </FieldGroup>
-              </CardContent>
-            </Card>
+            <FieldGroup title="assumptions">
+              <SliderField
+                label="assumed annual growth"
+                value={input.assumedGrowthRatePct}
+                display={`${input.assumedGrowthRatePct}%`}
+                min={0}
+                max={10}
+                step={0.5}
+                onChange={(v) => update("assumedGrowthRatePct", v)}
+              />
+              <SliderField
+                label="fund annual charge"
+                value={input.fundAmcPct}
+                display={`${input.fundAmcPct.toFixed(2)}%`}
+                min={0}
+                max={2}
+                step={0.05}
+                onChange={(v) => update("fundAmcPct", v)}
+              />
+              <div className="border-t border-border py-5">
+                <Label className="lower font-mono text-xs text-muted-foreground">
+                  marginal tax rate
+                </Label>
+                <Select
+                  value={String(input.marginalTaxRatePct)}
+                  onValueChange={(v) => v && update("marginalTaxRatePct", Number(v) as 20 | 40)}
+                >
+                  <SelectTrigger className="lower mt-2 h-10 w-full rounded-none border-0 border-b border-transparent bg-transparent px-0 font-heading text-lg focus-visible:border-primary focus-visible:ring-0">
+                    <SelectValue>{(value: string) => TAX_RATE_LABELS[value] ?? value}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="20">20% standard rate</SelectItem>
+                    <SelectItem value="40">40% higher rate</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </FieldGroup>
           </div>
 
-          <div className="space-y-6">
-            <div className="grid gap-5 sm:grid-cols-3">
-              {headline.map((stat) => (
-                <Card key={stat.label} className="shadow-soft">
-                  <CardContent className="pt-1">
-                    <div className={`icon-tile size-10 ${stat.tone}`}>
-                      <stat.icon className="h-4.5 w-4.5" aria-hidden />
-                    </div>
-                    <p className="mt-3 text-sm text-muted-foreground">{stat.label}</p>
-                    <p className={`tabular mt-1 text-2xl font-semibold ${stat.tone}`}>
-                      {stat.value}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">{stat.detail}</p>
-                  </CardContent>
-                </Card>
+          {/* Figures */}
+          <div>
+            <div className="grid border-t border-border md:grid-cols-3">
+              {headline.map((stat, i) => (
+                <Reveal
+                  key={stat.label}
+                  delay={i * 90}
+                  className="border-border py-8 md:px-8 md:first:pl-0 md:[&:not(:first-child)]:border-l"
+                >
+                  <span className="font-mono text-xs text-primary">{stat.no}</span>
+                  <p className="lower mt-4 font-mono text-xs text-muted-foreground">{stat.label}</p>
+                  <p
+                    className={`tabular mt-3 font-heading text-4xl tracking-tight md:text-5xl ${stat.tone}`}
+                  >
+                    {stat.value}
+                  </p>
+                  <p className="lower mt-3 text-sm text-muted-foreground">{stat.detail}</p>
+                </Reveal>
               ))}
             </div>
 
-            <Card className="shadow-soft">
-              <CardHeader className="border-b">
-                <CardTitle className="text-base">Pot growth vs. contributions</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-5">
+            <div className="mt-16">
+              <SectionLabel>pot growth vs contributions</SectionLabel>
+              <div className="mt-8 border-t border-border pt-8">
                 <ProjectionChart data={result.yearlyProjection} />
+              </div>
 
-                {/* What share of the final pot is growth rather than money paid in. */}
-                <div className="mt-6 space-y-2 border-t pt-5">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Made up of</span>
-                    <span className="tabular font-medium">
-                      {formatEuro(result.totalContributions)} in · {formatEuro(growth)} growth
-                    </span>
-                  </div>
-                  <div className="flex h-2.5 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="bg-muted-foreground/50"
-                      style={{ width: `${100 - growthShare}%` }}
-                    />
-                    <div className="bg-primary" style={{ width: `${growthShare}%` }} />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {growthShare.toFixed(0)}% of your projected pot comes from compound growth,
-                    after charges.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-soft">
-              <CardHeader className="border-b">
-                <CardTitle className="text-base">Tax relief detail</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-5">
-                <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-                  {taxDetail.map((item) => (
-                    <div
-                      key={item.label}
-                      className="flex items-baseline justify-between gap-3 border-b pb-3 last:border-b-0 sm:last:border-b-0"
-                    >
-                      <dt className="text-sm text-muted-foreground">{item.label}</dt>
-                      <dd className="tabular shrink-0 font-semibold">{item.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-                <p className="mt-5 flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
-                  <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-                  <span>
-                    Relief limits rise with age (15% under 30 up to 40% at 60+) and apply to net
-                    relevant earnings up to the €115,000 cap. Employer contributions don&apos;t
-                    count against your personal limit.
+              {/* What share of the final pot is growth rather than money paid in */}
+              <div className="mt-10 border-t border-border pt-6">
+                <div className="flex flex-wrap items-baseline justify-between gap-3">
+                  <span className="lower font-mono text-xs text-muted-foreground">made up of</span>
+                  <span className="tabular font-heading text-lg">
+                    {formatEuro(result.totalContributions)} in · {formatEuro(growth)} growth
                   </span>
+                </div>
+                <div className="mt-4 flex h-0.5 w-full overflow-hidden bg-border">
+                  <div className="bg-slate" style={{ width: `${100 - growthShare}%` }} />
+                  <div className="bg-primary" style={{ width: `${growthShare}%` }} />
+                </div>
+                <p className="lower mt-3 font-mono text-xs text-muted-foreground">
+                  {growthShare.toFixed(0)}% of the projected pot is compound growth, after charges.
                 </p>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
+
+            <div className="mt-16">
+              <SectionLabel>tax relief detail</SectionLabel>
+              <dl className="mt-8 border-t border-border">
+                {taxDetail.map((item) => (
+                  <div
+                    key={item.label}
+                    className="flex flex-wrap items-baseline justify-between gap-4 border-b border-border py-5"
+                  >
+                    <dt className="lower font-mono text-xs text-muted-foreground">{item.label}</dt>
+                    <dd className="tabular font-heading text-lg">{item.value}</dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="lower mt-6 max-w-2xl font-mono text-xs leading-relaxed text-muted-foreground">
+                relief limits rise with age — 15% under 30 up to 40% at 60+ — and apply to net
+                relevant earnings up to the €115,000 cap. employer contributions don&apos;t count
+                against your personal limit.{" "}
+                <Link href="/how-it-works" className="link-underline text-foreground">
+                  how the numbers work
+                </Link>
+                .
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
     </>
   );
 }

@@ -45,26 +45,32 @@ export function CookieBanner() {
 
   return (
     <>
-      <div className="animate-fade-up fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 shadow-lift backdrop-blur-md supports-[backdrop-filter]:bg-background/85">
-        <div className="container-page flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-muted-foreground">
-            We use essential cookies to run PensionIQ, and optional analytics cookies to
-            understand usage. No advertising or tracking pixels. See our{" "}
-            <a href="/privacy" className="font-medium text-foreground underline underline-offset-4 hover:text-primary">
-              Privacy Policy
+      <div className="animate-fade-up fixed inset-x-3 bottom-3 z-50">
+        <div className="pill flex flex-col gap-4 rounded-[var(--radius)] px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <p className="lower max-w-2xl font-mono text-xs leading-relaxed text-muted-foreground">
+            essential cookies run pensioniq; analytics cookies are optional. no advertising or
+            tracking pixels. see our{" "}
+            <a href="/privacy" className="link-underline text-foreground">
+              privacy policy
             </a>
             .
           </p>
-          <div className="flex shrink-0 gap-2">
-            <Button variant="ghost" size="sm" onClick={rejectAll}>
-              Reject
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setManageOpen(true)}>
-              Manage
-            </Button>
-            <Button size="sm" onClick={acceptAll}>
-              Accept All
-            </Button>
+          <div className="lower flex shrink-0 items-center gap-6 font-mono text-xs">
+            <button onClick={rejectAll} className="link-underline text-muted-foreground hover:text-foreground">
+              reject
+            </button>
+            <button
+              onClick={() => setManageOpen(true)}
+              className="link-underline text-muted-foreground hover:text-foreground"
+            >
+              manage
+            </button>
+            <button
+              onClick={acceptAll}
+              className="rounded-full bg-primary px-5 py-2 text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              accept all
+            </button>
           </div>
         </div>
       </div>
@@ -79,18 +85,20 @@ export function CookieBanner() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="flex items-center justify-between rounded-xl border p-3.5">
+            <div className="flex items-center justify-between border-t border-border pt-4">
               <div>
-                <p className="text-sm font-medium">Necessary</p>
-                <p className="text-xs text-muted-foreground">Required for login and core features.</p>
+                <p className="lower text-sm">necessary</p>
+                <p className="lower mt-1 font-mono text-xs text-muted-foreground">
+                  required for login and core features
+                </p>
               </div>
               <Switch checked disabled />
             </div>
-            <div className="flex items-center justify-between rounded-xl border p-3.5">
+            <div className="flex items-center justify-between border-t border-border pt-4">
               <div>
-                <p className="text-sm font-medium">Analytics</p>
-                <p className="text-xs text-muted-foreground">
-                  Helps us understand which pages are useful.
+                <p className="lower text-sm">analytics</p>
+                <p className="lower mt-1 font-mono text-xs text-muted-foreground">
+                  helps us understand which pages are useful
                 </p>
               </div>
               <Switch checked={analytics} onCheckedChange={setAnalytics} />

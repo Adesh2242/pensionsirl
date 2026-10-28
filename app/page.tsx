@@ -1,76 +1,40 @@
 import Link from "next/link";
-import {
-  ArrowRight,
-  Building2,
-  Calculator,
-  CalendarClock,
-  Landmark,
-  Lock,
-  Scale,
-  Search,
-  ShieldCheck,
-  Sparkles,
-  Wallet,
-} from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Counter } from "@/components/editorial/counter";
+import { Field } from "@/components/editorial/field";
+import { HeroCorners } from "@/components/editorial/hero-corners";
+import { Magnetic } from "@/components/editorial/magnetic";
+import { Marquee } from "@/components/editorial/marquee";
+import { Ragged } from "@/components/editorial/ragged";
+import { Reveal } from "@/components/editorial/reveal";
+import { SectionLabel } from "@/components/editorial/section-label";
+import { AnimatedText } from "@/components/editorial/animated-text";
 import { getAllFunds, getAllProviders, getLastScrapeTime } from "@/lib/data/funds.server";
-import { hueForName } from "@/lib/color-hash";
 import { formatLastUpdated } from "@/lib/utils";
 
-const trustSignals = [
-  { icon: Lock, label: "Free, no account needed to browse" },
-  { icon: Landmark, label: "Sourced from official provider fund centres" },
-  { icon: ShieldCheck, label: "Not regulated financial advice — for research only" },
-];
-
-const features = [
+const tools = [
   {
+    no: "01",
     href: "/funds",
-    icon: Search,
-    title: "Explore funds",
-    description:
-      "Search and filter pension funds by provider, asset class, risk rating and annual charge.",
-    tone: "text-chart-1",
+    title: "explore funds",
+    items: ["every provider, one list", "filter by asset class", "risk 1–7 at a glance", "charges side by side"],
   },
   {
+    no: "02",
     href: "/compare",
-    icon: Scale,
-    title: "Compare side-by-side",
-    description:
-      "Pick funds from any provider and compare charges, risk and illustrative performance.",
-    tone: "text-chart-2",
+    title: "compare funds",
+    items: ["up to four at once", "lowest charge flagged", "highest return flagged", "shareable by url"],
   },
   {
+    no: "03",
     href: "/calculator",
-    icon: Calculator,
-    title: "Project your pot",
-    description:
-      "Model your retirement pot using real Irish Revenue age-related tax relief rules.",
-    tone: "text-chart-3",
+    title: "project your pot",
+    items: ["revenue age-related limits", "€115,000 earnings cap", "charge drag over time", "growth vs contributions"],
   },
   {
+    no: "04",
     href: "/ai-suggestions",
-    icon: Sparkles,
-    title: "Get AI suggestions",
-    description:
-      "Describe your risk appetite and get a shortlist of funds worth researching further.",
-    tone: "text-chart-5",
-  },
-];
-
-const steps = [
-  {
-    title: "Find funds that fit",
-    body: "Filter the whole Irish market by provider, asset class, risk band and charge — no account, no sales call.",
-  },
-  {
-    title: "Compare what matters",
-    body: "Put up to four funds side-by-side. Charges and returns are highlighted so the better number is obvious.",
-  },
-  {
-    title: "See what it means for you",
-    body: "Project your pot to retirement with Revenue's age-related relief limits, then track what you actually hold.",
+    title: "ask for a shortlist",
+    items: ["describe your risk appetite", "grounded in the catalog", "plain-text answers", "not advice, a starting point"],
   },
 ];
 
@@ -81,254 +45,190 @@ export default async function Home() {
     getLastScrapeTime(),
   ]);
 
-  const stats = [
-    {
-      icon: Wallet,
-      value: String(funds.length),
-      label: "Funds tracked",
-      tone: "text-chart-1",
-    },
-    {
-      icon: Building2,
-      value: String(providers.length),
-      label: "Irish providers",
-      tone: "text-chart-2",
-    },
-    {
-      icon: CalendarClock,
-      value: lastScrapeTime ? formatLastUpdated(lastScrapeTime)!.split(",")[0] : "Weekly",
-      label: "Fund data refreshed",
-      tone: "text-chart-3",
-    },
+  const lowestAmc = funds.reduce<number | undefined>(
+    (lowest, fund) =>
+      fund.amc === undefined ? lowest : lowest === undefined ? fund.amc : Math.min(lowest, fund.amc),
+    undefined,
+  );
+
+  const metrics = [
+    { value: funds.length, label: "funds tracked", suffix: "" },
+    { value: providers.length, label: "irish providers", suffix: "" },
+    { value: lowestAmc ?? 0, label: "lowest annual charge", suffix: "%", decimals: 2 },
+    { value: 40, label: "max tax relief at 60+", suffix: "%" },
   ];
 
   return (
-    <div className="flex flex-col">
+    <>
       {/* Hero */}
-      <section className="bg-glow relative isolate overflow-hidden border-b">
-        <div className="bg-grid absolute inset-0" aria-hidden />
-        <div className="container-page relative py-20 text-center sm:py-28">
-          <p className="animate-fade-in inline-flex items-center gap-2 rounded-full border bg-card/80 px-3.5 py-1.5 text-xs font-medium text-muted-foreground shadow-soft backdrop-blur">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-success" />
-            </span>
-            {funds.length} funds · {providers.length} Irish providers · refreshed weekly
-          </p>
+      <Field className="inset-frame flex min-h-[94svh] flex-col justify-between" tone="teal">
+        <HeroCorners left="irish pension fund explorer" right="free · no account needed" />
 
-          <h1 className="animate-fade-up mt-6 text-4xl font-semibold leading-[1.08] sm:text-6xl">
-            Make sense of
-            <br className="hidden sm:block" />{" "}
-            <span className="text-gradient">your Irish pension</span>
-          </h1>
+        <div className="flex flex-1 items-center px-6 pt-40 md:px-10">
+          <Ragged
+            as="h1"
+            className="w-full text-[12vw] leading-[0.92] md:text-[7vw]"
+            lines={["every irish pension", "fund — compared,", "projected, explained."]}
+          />
+        </div>
 
-          <p
-            className="animate-fade-up mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground"
-            style={{ animationDelay: "80ms" }}
-          >
-            Compare pension funds from {providers.length} Irish providers, project your
-            retirement pot with real tax relief rules, and get AI-powered suggestions — all in
-            one place.
-          </p>
-
-          <div
-            className="animate-fade-up mt-9 flex flex-wrap items-center justify-center gap-3"
-            style={{ animationDelay: "160ms" }}
-          >
-            <Link href="/funds" className={buttonVariants({ size: "lg", className: "h-11 px-5 text-sm" })}>
-              Explore funds
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+        <div className="px-6 pb-10 md:px-10">
+          <Magnetic>
             <Link
-              href="/calculator"
-              className={buttonVariants({
-                size: "lg",
-                variant: "outline",
-                className: "h-11 px-5 text-sm",
-              })}
+              href="/funds"
+              className="lower pill group inline-flex items-center gap-3 rounded-full px-6 py-3.5 text-sm transition-colors hover:text-primary"
             >
-              Try the calculator
-            </Link>
-          </div>
-
-          <ul
-            className="animate-fade-up mt-10 flex flex-wrap items-center justify-center gap-x-7 gap-y-2.5"
-            style={{ animationDelay: "240ms" }}
-          >
-            {trustSignals.map((signal) => (
-              <li
-                key={signal.label}
-                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
-              >
-                <signal.icon className="h-3.5 w-3.5 text-primary/70" aria-hidden />
-                {signal.label}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      {/* Stats band — the numbers that justify the claims above. */}
-      <section className="border-b bg-card/60">
-        <div className="container-page grid grid-cols-1 divide-y sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-          {stats.map((stat) => (
-            <div
-              key={stat.label}
-              className="flex items-center justify-center gap-4 py-7 sm:justify-start sm:px-8 sm:first:pl-0 sm:last:pr-0"
-            >
-              <div className={`icon-tile size-11 ${stat.tone}`}>
-                <stat.icon className="h-5 w-5" aria-hidden />
-              </div>
-              <div>
-                <p className="tabular text-2xl font-semibold leading-tight">{stat.value}</p>
-                <p className="text-sm text-muted-foreground">{stat.label}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Feature cards */}
-      <section className="container-page py-20">
-        <div className="max-w-2xl">
-          <p className="text-xs font-semibold uppercase tracking-wider text-primary">
-            Everything in one place
-          </p>
-          <h2 className="mt-2 text-3xl font-semibold">Four tools, no spreadsheets</h2>
-          <p className="mt-3 text-muted-foreground">
-            Pension information in Ireland is scattered across provider PDFs. This pulls it
-            into one place you can actually search.
-          </p>
-        </div>
-
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {features.map((feature) => (
-            <Link key={feature.href} href={feature.href} className="group rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
-              <Card className="card-interactive h-full">
-                <CardHeader>
-                  <div className={`icon-tile size-11 ${feature.tone}`}>
-                    <feature.icon className="h-5 w-5" aria-hidden />
-                  </div>
-                  <CardTitle className="mt-3 text-base">{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="flex h-full flex-col">
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    {feature.description}
-                  </p>
-                  <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">
-                    Open
-                    <ArrowRight
-                      className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5"
-                      aria-hidden
-                    />
-                  </span>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section className="border-y bg-muted/40">
-        <div className="container-page py-20">
-          <div className="max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-wider text-primary">
-              How it works
-            </p>
-            <h2 className="mt-2 text-3xl font-semibold">From 400 funds to a shortlist</h2>
-          </div>
-          <ol className="mt-10 grid gap-6 md:grid-cols-3">
-            {steps.map((step, index) => (
-              <li key={step.title} className="relative rounded-xl border bg-card p-6 shadow-soft">
-                <span className="tabular flex h-8 w-8 items-center justify-center rounded-lg bg-primary/12 text-sm font-semibold text-primary">
-                  {index + 1}
-                </span>
-                <p className="mt-4 font-medium">{step.title}</p>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
-
-      {/* Providers */}
-      <section className="container-page py-20">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="text-3xl font-semibold">Providers covered</h2>
-            <p className="mt-2 text-muted-foreground">
-              Every major Irish pension provider, with fund counts from their public fund
-              centres.
-            </p>
-          </div>
-          <Link
-            href="/funds"
-            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-          >
-            Browse all funds
-            <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-          </Link>
-        </div>
-
-        <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {providers.map((provider) => (
-            <Link
-              key={provider.slug}
-              href={`/funds?provider=${provider.slug}`}
-              className="card-interactive flex items-center gap-3 rounded-xl bg-card p-4 text-sm ring-1 ring-foreground/10"
-            >
-              <span
-                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${hueForName(provider.name)}`}
-                aria-hidden
-              >
-                {provider.name[0]}
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate font-medium">{provider.name}</span>
-                <span className="block text-xs text-muted-foreground">
-                  {provider.realFundCount} funds
-                </span>
+              explore the funds
+              <span className="animate-nudge inline-block" aria-hidden="true">
+                ↗
               </span>
             </Link>
-          ))}
-        </div>
-      </section>
+          </Magnetic>
 
-      {/* Closing CTA */}
-      <section className="border-t bg-card/60">
-        <div className="container-page py-16">
-          <div className="bg-glow relative isolate overflow-hidden rounded-2xl border bg-gradient-to-br from-accent/60 to-card px-6 py-14 text-center shadow-soft sm:px-12">
-            <div className="bg-grid absolute inset-0" aria-hidden />
-            <div className="relative">
-              <h2 className="text-3xl font-semibold">See what your pension could be worth</h2>
-              <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-                Use the calculator to project your pot to retirement — including the tax relief
-                you&apos;re entitled to and the drag your fund&apos;s charges apply.
+          <div className="mt-12 grid gap-6 border-t border-border pt-8 sm:grid-cols-3">
+            {[
+              [`${funds.length} funds,`, `${providers.length} irish providers`],
+              ["sourced from public", "provider fund centres"],
+              ["research tool,", "not financial advice"],
+            ].map(([top, bottom], i) => (
+              <Reveal key={top} delay={i * 90}>
+                <p className="lower text-sm">{top}</p>
+                <p className="lower text-sm text-muted-foreground">{bottom}</p>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </Field>
+
+      {/* Statement + figures */}
+      <section className="px-6 py-28 md:px-10 md:py-40">
+        <div className="container-page px-0 md:px-0">
+          <SectionLabel>the problem</SectionLabel>
+          <Ragged
+            as="h2"
+            className="mt-10 max-w-5xl text-[8vw] leading-[1] md:text-[4.2vw]"
+            lines={["your pension is a fund", "you have never seen."]}
+          />
+          <div className="mt-14 grid gap-10 border-t border-border pt-10 md:grid-cols-[1fr_1.1fr]">
+            <Reveal>
+              <p className="lower max-w-md text-base text-muted-foreground md:text-lg">
+                irish pension information lives in provider pdfs, one fund at a time. we pull the
+                whole market into one list you can search — then show what the charges and the tax
+                relief actually do to your pot.
               </p>
-              <div className="mt-8 flex flex-wrap justify-center gap-3">
-                <Link
-                  href="/calculator"
-                  className={buttonVariants({ size: "lg", className: "h-11 px-5 text-sm" })}
-                >
-                  Open the calculator
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link
-                  href="/how-it-works"
-                  className={buttonVariants({
-                    size: "lg",
-                    variant: "outline",
-                    className: "h-11 px-5 text-sm",
-                  })}
-                >
-                  How the numbers work
-                </Link>
+            </Reveal>
+            <Reveal delay={120}>
+              <div className="grid grid-cols-2 gap-x-10 gap-y-8">
+                {metrics.map((metric) => (
+                  <div key={metric.label} className="border-t border-border pt-5">
+                    <div className="tabular font-heading text-4xl tracking-tight md:text-6xl">
+                      <Counter
+                        to={metric.value}
+                        suffix={metric.suffix}
+                        decimals={metric.decimals}
+                      />
+                    </div>
+                    <div className="lower mt-2 font-mono text-xs text-muted-foreground">
+                      {metric.label}
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
+            </Reveal>
           </div>
         </div>
       </section>
-    </div>
+
+      {/* Tools — numbered columns divided by hairlines */}
+      <section className="px-6 pb-28 md:px-10 md:pb-40">
+        <div className="container-page px-0 md:px-0">
+          <SectionLabel>the tools</SectionLabel>
+          <AnimatedText
+            as="h2"
+            className="lower mt-10 block max-w-3xl text-[7vw] leading-[1] md:text-[3.4vw]"
+            text="four tools, one catalog."
+          />
+
+          <div className="mt-16 grid border-t border-border md:grid-cols-2 lg:grid-cols-4">
+            {tools.map((tool, i) => (
+              // The rule sits on the grid item itself, and is dropped on the
+              // first column of each row so rows don't open with a stray line.
+              <Reveal
+                key={tool.title}
+                delay={i * 90}
+                className="border-border md:border-l md:[&:nth-child(2n+1)]:border-l-0 lg:[&:nth-child(2n+1)]:border-l lg:[&:nth-child(4n+1)]:border-l-0"
+              >
+                <Link
+                  href={tool.href}
+                  className="group flex h-full min-h-[22rem] flex-col justify-between py-8 transition-colors md:px-8"
+                >
+                  <div>
+                    <span className="font-mono text-sm text-primary">{tool.no}</span>
+                    <h3 className="lower mt-5 font-heading text-2xl tracking-tight transition-colors group-hover:text-primary md:text-3xl">
+                      {tool.title}
+                    </h3>
+                  </div>
+                  <ul className="mt-10 space-y-2.5">
+                    {tool.items.map((item) => (
+                      <li key={item} className="lower text-sm text-muted-foreground">
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </Link>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Providers ticker */}
+      <section className="border-t border-border py-12">
+        <p className="lower container-page mb-6 font-mono text-xs text-muted-foreground">
+          the providers we track
+        </p>
+        <Marquee items={providers.map((provider) => provider.name)} />
+        {lastScrapeTime && (
+          <p className="lower container-page mt-6 font-mono text-xs text-muted-foreground">
+            fund data last updated {formatLastUpdated(lastScrapeTime)} utc
+          </p>
+        )}
+      </section>
+
+      {/* The inverted moment */}
+      <section className="px-3 pb-3">
+        <div className="paper rounded-[var(--radius)] px-6 py-20 md:px-16 md:py-28">
+          <SectionLabel className="!text-[#6b7671]">your turn</SectionLabel>
+          <AnimatedText
+            as="h2"
+            className="lower mt-8 block max-w-3xl text-[9vw] leading-[1] md:text-[4.4vw]"
+            text="see what your pension could be worth."
+          />
+          <div className="mt-10 flex flex-wrap items-center gap-4">
+            <Magnetic>
+              <Link
+                href="/calculator"
+                className="lower group inline-flex items-center gap-3 rounded-full bg-[#101514] px-6 py-3.5 text-sm text-[#f5f5f2] transition-opacity hover:opacity-90"
+              >
+                open the calculator
+                <span className="animate-nudge inline-block" aria-hidden="true">
+                  ↗
+                </span>
+              </Link>
+            </Magnetic>
+            <Link
+              href="/how-it-works"
+              className="lower link-underline text-sm text-[#6b7671] transition-colors hover:text-[#101514]"
+            >
+              how the numbers work
+            </Link>
+          </div>
+          <div className="mt-16 flex flex-col gap-2 border-t border-[rgba(16,21,20,0.14)] pt-6 font-mono text-xs text-[#6b7671] sm:flex-row sm:items-center sm:justify-between">
+            <span className="lower">ireland · revenue age-related relief rules</span>
+            <span className="lower">or browse the {funds.length} funds ↗</span>
+          </div>
+        </div>
+      </section>
+    </>
   );
 }

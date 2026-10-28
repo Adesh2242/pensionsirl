@@ -3,9 +3,6 @@
 import { Suspense, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Check, Plus, Scale, X } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -13,13 +10,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PageHeader } from "@/components/layout/page-header";
+import { PageIntro } from "@/components/editorial/page-intro";
+import { SectionLabel } from "@/components/editorial/section-label";
 import { RiskBadge } from "@/components/funds/risk-badge";
 import { RiskMeter } from "@/components/funds/risk-meter";
 import { AssetClassBadge } from "@/components/funds/asset-class-badge";
 import { ReturnValue } from "@/components/funds/return-value";
 import { useFunds } from "@/lib/hooks/use-funds";
-import { hueForName } from "@/lib/color-hash";
 import { formatAmc } from "@/lib/utils";
 import type { Fund } from "@/lib/types";
 
@@ -52,12 +49,12 @@ type Row = {
 };
 
 const rows: Row[] = [
-  { label: "Provider", render: (f) => f.providerName },
-  { label: "Asset class", render: (f) => <AssetClassBadge assetClass={f.assetClass} /> },
+  { label: "provider", render: (f) => <span className="lower">{f.providerName}</span> },
+  { label: "asset class", render: (f) => <AssetClassBadge assetClass={f.assetClass} /> },
   {
-    label: "Risk rating",
+    label: "risk rating",
     render: (f) => (
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <RiskBadge risk={f.riskRating} />
         <RiskMeter risk={f.riskRating} size="sm" className="w-28" />
       </div>
@@ -65,31 +62,31 @@ const rows: Row[] = [
     best: { value: (f) => f.riskRating, direction: "lower" },
   },
   {
-    label: "Annual charge",
-    render: (f) => <span className="tabular font-medium">{formatAmc(f.amc)}</span>,
+    label: "annual charge",
+    render: (f) => <span className="tabular font-heading text-lg">{formatAmc(f.amc)}</span>,
     best: { value: (f) => f.amc, direction: "lower" },
   },
   {
     label: "1yr return",
-    render: (f) => <ReturnValue value={f.oneYearReturn} />,
+    render: (f) => <ReturnValue value={f.oneYearReturn} className="font-heading text-lg" />,
     best: { value: (f) => f.oneYearReturn, direction: "higher" },
   },
   {
     label: "3yr return (ann.)",
-    render: (f) => <ReturnValue value={f.threeYearReturn} />,
+    render: (f) => <ReturnValue value={f.threeYearReturn} className="font-heading text-lg" />,
     best: { value: (f) => f.threeYearReturn, direction: "higher" },
   },
   {
     label: "5yr return (ann.)",
-    render: (f) => <ReturnValue value={f.fiveYearReturn} />,
+    render: (f) => <ReturnValue value={f.fiveYearReturn} className="font-heading text-lg" />,
     best: { value: (f) => f.fiveYearReturn, direction: "higher" },
   },
-  { label: "Manager", render: (f) => f.manager ?? "—" },
+  { label: "manager", render: (f) => <span className="lower">{f.manager ?? "—"}</span> },
 ];
 
 /**
  * The winning slug for a row, or null when nothing wins — no comparable
- * values, or a tie (highlighting every column would say nothing).
+ * values, or a tie (flagging every column would say nothing).
  */
 function bestSlug(row: Row, funds: Fund[]): string | null {
   if (!row.best || funds.length < 2) return null;
@@ -118,156 +115,155 @@ function ComparePage() {
     setSlugs([...slugs, slug]);
   }
 
-  function removeFund(slug: string) {
-    setSlugs(slugs.filter((s) => s !== slug));
-  }
-
   return (
     <>
-      <PageHeader
-        title="Compare funds"
-        description={`Pick up to ${MAX_COMPARE} funds to compare side-by-side. Your selection lives in the URL, so you can share or bookmark the comparison.`}
-        actions={
-          selectedFunds.length > 0 ? (
-            <Button variant="outline" size="sm" onClick={() => setSlugs([])}>
-              Clear all
-            </Button>
-          ) : undefined
-        }
-      >
-        <div className="mt-8 max-w-md space-y-1.5">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="add-fund" className="text-xs text-muted-foreground">
-              Add a fund
-            </Label>
-            <span className="tabular text-xs text-muted-foreground">
-              {slugs.length}/{MAX_COMPARE} selected
-            </span>
-          </div>
-          <Select
-            onValueChange={(v: string | null) => v && addFund(v)}
-            disabled={slugs.length >= MAX_COMPARE}
-          >
-            <SelectTrigger id="add-fund" className="h-10 w-full bg-card">
-              <Plus className="h-4 w-4 text-muted-foreground" aria-hidden />
-              <SelectValue
-                placeholder={
-                  slugs.length >= MAX_COMPARE ? `Maximum ${MAX_COMPARE} funds` : "Choose a fund…"
-                }
-              />
-            </SelectTrigger>
-            <SelectContent>
-              {availableFunds.map((f) => (
-                <SelectItem key={f.slug} value={f.slug}>
-                  {f.providerName} — {f.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </PageHeader>
+      <PageIntro
+        label="compare"
+        lines={["four funds,", "side by side."]}
+        tone="sun"
+        corners={{ left: `${slugs.length}/${MAX_COMPARE} selected`, right: "shareable by url" }}
+        lead="pick up to four funds. the lowest charge and the highest return are flagged — the rest is yours to weigh."
+      />
 
-      <div className="container-page py-10">
-        {selectedFunds.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed bg-card/50 p-14 text-center">
-            <div className="icon-tile size-12 text-chart-2">
-              <Scale className="h-5 w-5" aria-hidden />
+      <section className="px-6 py-14 md:px-10 md:py-20">
+        <div className="container-page px-0 md:px-0">
+          <div className="grid gap-5 border-t border-border pt-8 md:grid-cols-[1fr_auto] md:items-end">
+            <label className="block max-w-md">
+              <span className="lower mb-3 block font-mono text-xs text-muted-foreground">
+                add a fund
+              </span>
+              <Select
+                onValueChange={(v: string | null) => v && addFund(v)}
+                disabled={slugs.length >= MAX_COMPARE}
+              >
+                <SelectTrigger className="lower h-11 w-full rounded-none border-0 border-b border-border bg-transparent px-0 text-base focus-visible:border-primary focus-visible:ring-0">
+                  <SelectValue
+                    placeholder={
+                      slugs.length >= MAX_COMPARE ? `maximum ${MAX_COMPARE} funds` : "choose a fund…"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableFunds.map((f) => (
+                    <SelectItem key={f.slug} value={f.slug}>
+                      {f.providerName} — {f.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
+
+            {selectedFunds.length > 0 && (
+              <button
+                onClick={() => setSlugs([])}
+                className="lower link-underline justify-self-start font-mono text-xs text-muted-foreground hover:text-foreground md:justify-self-end"
+              >
+                clear all
+              </button>
+            )}
+          </div>
+
+          {selectedFunds.length === 0 ? (
+            <div className="mt-16 border-t border-border py-24 text-center">
+              <p className="lower font-heading text-3xl">nothing to compare yet.</p>
+              <Link
+                href="/funds"
+                className="lower link-underline mt-5 inline-block font-mono text-xs text-primary"
+              >
+                browse the fund explorer ↗
+              </Link>
             </div>
-            <p className="font-medium">Nothing to compare yet</p>
-            <p className="max-w-sm text-sm text-muted-foreground">
-              Add up to {MAX_COMPARE} funds above, or pick them straight from the explorer.
-            </p>
-            <Link href="/funds" className={buttonVariants({ variant: "outline", size: "sm" })}>
-              Browse the fund explorer
+          ) : (
+            <>
+              <div className="mt-16 overflow-x-auto">
+                <table className="w-full border-collapse text-left">
+                  <thead>
+                    <tr className="border-t border-border">
+                      <th className="lower w-40 py-6 pr-6 align-bottom font-mono text-xs font-normal text-muted-foreground">
+                        metric
+                      </th>
+                      {selectedFunds.map((f, i) => (
+                        <th
+                          key={f.slug}
+                          className="min-w-[13rem] border-l border-border px-6 py-6 align-bottom font-normal"
+                        >
+                          <span className="lower tabular block font-mono text-xs text-primary">
+                            {String(i + 1).padStart(2, "0")}
+                          </span>
+                          <Link
+                            href={`/funds/${f.slug}`}
+                            className="lower mt-3 block font-heading text-xl leading-tight tracking-tight transition-colors hover:text-primary"
+                          >
+                            {f.name}
+                          </Link>
+                          <span className="lower mt-2 block font-mono text-xs text-muted-foreground">
+                            {f.providerName}
+                          </span>
+                          <button
+                            onClick={() => setSlugs(slugs.filter((s) => s !== f.slug))}
+                            className="lower link-underline mt-3 font-mono text-xs text-muted-foreground hover:text-destructive"
+                          >
+                            remove
+                          </button>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row) => {
+                      const winner = bestSlug(row, selectedFunds);
+                      return (
+                        <tr key={row.label} className="border-t border-border">
+                          <td className="lower py-6 pr-6 align-middle font-mono text-xs text-muted-foreground">
+                            {row.label}
+                          </td>
+                          {selectedFunds.map((f) => (
+                            <td
+                              key={f.slug}
+                              className="border-l border-border px-6 py-6 align-middle"
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                {row.render(f)}
+                                {winner === f.slug && (
+                                  <span className="lower shrink-0 font-mono text-[0.65rem] text-primary">
+                                    best
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <p className="lower mt-8 max-w-2xl font-mono text-xs leading-relaxed text-muted-foreground">
+                &ldquo;best&rdquo; flags the lowest charge and risk, and the highest return, among
+                the funds shown — not a recommendation, and not advice. lower risk isn&apos;t
+                automatically better over a long horizon.
+              </p>
+            </>
+          )}
+
+          <SectionLabel className="mt-20">still deciding?</SectionLabel>
+          <div className="mt-6 flex flex-wrap gap-x-8 gap-y-3">
+            <Link
+              href="/calculator"
+              className="lower link-underline text-sm text-muted-foreground hover:text-foreground"
+            >
+              model the charges over 30 years ↗
+            </Link>
+            <Link
+              href="/ai-suggestions"
+              className="lower link-underline text-sm text-muted-foreground hover:text-foreground"
+            >
+              ask for a shortlist ↗
             </Link>
           </div>
-        ) : (
-          <>
-            <div className="overflow-x-auto rounded-xl border bg-card shadow-soft">
-              <table className="w-full border-collapse text-sm">
-                <thead>
-                  <tr>
-                    <th className="sticky left-0 z-10 w-44 bg-card p-4 text-left align-bottom text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                      Metric
-                    </th>
-                    {selectedFunds.map((f) => (
-                      <th
-                        key={f.slug}
-                        className="min-w-[14rem] border-l p-4 text-left align-bottom font-normal"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span
-                                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[0.65rem] font-semibold ${hueForName(f.providerName)}`}
-                                aria-hidden
-                              >
-                                {f.providerName[0]}
-                              </span>
-                              <span className="truncate text-xs text-muted-foreground">
-                                {f.providerName}
-                              </span>
-                            </div>
-                            <Link
-                              href={`/funds/${f.slug}`}
-                              className="mt-1 block font-semibold leading-snug hover:text-primary"
-                            >
-                              {f.name}
-                            </Link>
-                          </div>
-                          <button
-                            onClick={() => removeFund(f.slug)}
-                            aria-label={`Remove ${f.name}`}
-                            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => {
-                    const winner = bestSlug(row, selectedFunds);
-                    return (
-                      <tr key={row.label} className="border-t">
-                        <td className="sticky left-0 z-10 bg-card p-4 align-middle font-medium text-muted-foreground">
-                          {row.label}
-                        </td>
-                        {selectedFunds.map((f) => (
-                          <td
-                            key={f.slug}
-                            className={`border-l p-4 align-middle ${
-                              winner === f.slug ? "bg-success/8" : ""
-                            }`}
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              {row.render(f)}
-                              {winner === f.slug && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-success/12 px-2 py-0.5 text-[0.7rem] font-medium text-success ring-1 ring-inset ring-success/20">
-                                  <Check className="h-3 w-3" aria-hidden />
-                                  Best
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                        ))}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            <p className="mt-4 text-xs text-muted-foreground">
-              &ldquo;Best&rdquo; flags the lowest charge and risk, and the highest return, among
-              the funds shown — not a recommendation, and not advice. Lower risk isn&apos;t
-              automatically better for a long time horizon.
-            </p>
-          </>
-        )}
-      </div>
+        </div>
+      </section>
     </>
   );
 }

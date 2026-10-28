@@ -3,9 +3,8 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Bell, Plus, TrendingDown, TrendingUp, Wallet, X } from "lucide-react";
+import { Bell, TrendingDown, TrendingUp, Wallet, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -24,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AssetClassBadge } from "@/components/funds/asset-class-badge";
-import { PageHeader } from "@/components/layout/page-header";
+import { PageIntro } from "@/components/editorial/page-intro";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth-context";
 import { createClient } from "@/lib/supabase/client";
@@ -63,53 +62,61 @@ function Holding({
   const hasAlert = monthsSinceSeen >= 1 && monthsElapsed >= 1;
 
   return (
-    <Card className="shadow-soft">
-      <CardContent className="pt-1">
+    <div className="border-t border-border py-8">
+      <div>
         {hasAlert && (
-          <div className="mb-4 flex items-start gap-3 rounded-lg bg-accent/60 p-3 text-sm ring-1 ring-inset ring-primary/15">
+          <div className="mb-6 flex items-start gap-3 border-l border-primary pl-4 text-sm">
             <Bell className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
             <div className="flex-1">
-              <p className="font-medium text-accent-foreground">Monthly update</p>
-              <p className="text-muted-foreground">
+              <p className="lower font-mono text-xs text-primary">monthly update</p>
+              <p className="lower mt-1.5 text-sm text-muted-foreground">
                 {fund.name} is now estimated at <strong>{formatEuro(currentValue)}</strong>{" "}
                 ({growth >= 0 ? "+" : ""}
                 {growthPct.toFixed(1)}% vs. what you&apos;ve put in).
               </p>
             </div>
-            <Button variant="ghost" size="sm" className="h-7 shrink-0 px-2 text-xs" onClick={onMarkSeen}>
-              Got it
-            </Button>
+            <button
+              onClick={onMarkSeen}
+              className="lower link-underline shrink-0 font-mono text-xs text-muted-foreground hover:text-foreground"
+            >
+              got it
+            </button>
           </div>
         )}
 
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs text-muted-foreground">{fund.providerName}</p>
-            <Link href={`/funds/${fund.slug}`} className="font-semibold hover:text-primary">
+            <Link
+              href={`/funds/${fund.slug}`}
+              className="lower font-heading text-xl tracking-tight transition-colors hover:text-primary md:text-2xl"
+            >
               {fund.name}
             </Link>
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-1.5">
+              <span className="lower font-mono text-xs text-muted-foreground">
+                {fund.providerName}
+              </span>
               <AssetClassBadge assetClass={fund.assetClass} />
             </div>
           </div>
           <button
             onClick={onRemove}
             aria-label={`Stop tracking ${fund.name}`}
-            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="p-1 text-muted-foreground transition-colors hover:text-destructive"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="mt-4 grid grid-cols-3 gap-4 rounded-lg bg-muted/60 p-3 text-sm">
+        <div className="mt-6 grid grid-cols-3 gap-6 border-t border-border pt-5 text-sm">
           <div>
-            <p className="text-xs text-muted-foreground">Estimated value</p>
-            <p className="tabular text-xl font-semibold">{formatEuro(currentValue)}</p>
+            <p className="lower font-mono text-xs text-muted-foreground">estimated value</p>
+            <p className="tabular mt-2 font-heading text-xl">{formatEuro(currentValue)}</p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Since you started</p>
+            <p className="lower font-mono text-xs text-muted-foreground">since you started</p>
             <p
-              className={`tabular flex items-center gap-1 text-xl font-semibold ${growth >= 0 ? "text-success" : "text-destructive"}`}
+              className={`tabular mt-2 flex items-center gap-1 font-heading text-xl ${growth >= 0 ? "text-success" : "text-destructive"}`}
             >
               {growth >= 0 ? (
                 <TrendingUp className="h-4 w-4" aria-hidden />
@@ -121,17 +128,19 @@ function Holding({
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Monthly contribution</p>
-            <p className="tabular text-xl font-semibold">{formatEuro(tracked.monthlyContribution)}</p>
+            <p className="lower font-mono text-xs text-muted-foreground">monthly contribution</p>
+            <p className="tabular mt-2 font-heading text-xl">
+              {formatEuro(tracked.monthlyContribution)}
+            </p>
           </div>
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">
-          Started {startedAt.toLocaleDateString("en-IE", { month: "short", year: "numeric" })} with{" "}
-          {formatEuro(tracked.startValue)}. Projected using this fund&apos;s 1yr return, compounded
+        <p className="lower mt-5 font-mono text-xs leading-relaxed text-muted-foreground">
+          started {startedAt.toLocaleDateString("en-IE", { month: "short", year: "numeric" }).toLowerCase()} with{" "}
+          {formatEuro(tracked.startValue)}. projected using this fund&apos;s 1yr return, compounded
           monthly — an estimate, not your real statement value.
         </p>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
@@ -340,13 +349,10 @@ function PortfolioContent() {
 
   if (authLoading || !user || tracked === null) {
     return (
-      <div className="container-page max-w-3xl py-12">
-        <Skeleton className="h-9 w-56" />
-        <Skeleton className="mt-3 h-5 w-full max-w-lg" />
-        <div className="mt-8 space-y-4">
-          <Skeleton className="h-44 rounded-xl" />
-          <Skeleton className="h-44 rounded-xl" />
-        </div>
+      <div className="container-page max-w-4xl px-6 py-32 md:px-10">
+        <p className="lower font-mono text-xs text-muted-foreground">loading your portfolio…</p>
+        <Skeleton className="mt-8 h-40 rounded-none" />
+        <Skeleton className="mt-px h-40 rounded-none" />
       </div>
     );
   }
@@ -359,50 +365,56 @@ function PortfolioContent() {
 
   return (
     <>
-      <PageHeader
-        title="My portfolio"
-        description="Track funds you hold and get a monthly estimate of their value based on your contributions and each fund's return rate."
-        actions={
-          <Button size="lg" className="h-10" onClick={() => setDialogOpen(true)} disabled={!fundsReady}>
-            <Plus className="h-4 w-4" />
-            Track a fund
-          </Button>
-        }
+      <PageIntro
+        label="portfolio"
+        lines={["what you hold,", "what it's worth."]}
+        tone="slate"
+        corners={{ left: "monthly estimates", right: "not a statement feed" }}
+        lead="track the funds you hold and get a monthly estimate of their value from your contributions and each fund's return rate."
       >
-        {alertCount > 0 && (
-          <p className="mt-6 inline-flex items-center gap-2 rounded-full bg-accent px-3.5 py-1.5 text-sm font-medium text-accent-foreground">
-            <Bell className="h-4 w-4" aria-hidden />
-            {alertCount} {alertCount === 1 ? "holding has" : "holdings have"} a new monthly update
-          </p>
-        )}
-      </PageHeader>
+        <div className="mt-10 flex flex-wrap items-center gap-6">
+          <button
+            onClick={() => setDialogOpen(true)}
+            disabled={!fundsReady}
+            className="lower pill inline-flex items-center gap-3 rounded-full px-6 py-3.5 text-sm transition-colors hover:text-primary disabled:opacity-50"
+          >
+            track a fund <span aria-hidden>↗</span>
+          </button>
+          {alertCount > 0 && (
+            <span className="lower inline-flex items-center gap-2 font-mono text-xs text-primary">
+              <Bell className="h-3.5 w-3.5" aria-hidden />
+              {alertCount} {alertCount === 1 ? "holding has" : "holdings have"} a new update
+            </span>
+          )}
+        </div>
+      </PageIntro>
 
-      <div className="container-page max-w-3xl py-10">
+      <div className="container-page max-w-4xl px-6 py-14 md:px-10 md:py-20">
       {!fundsReady && (
-        <p className="mb-4 text-xs text-muted-foreground">Loading live fund data…</p>
+        <p className="lower mb-6 font-mono text-xs text-muted-foreground">loading live fund data…</p>
       )}
 
       {loadError && (
-        <p className="mb-6 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {loadError}
-        </p>
+        <p className="lower mb-6 font-mono text-xs text-destructive">{loadError}</p>
       )}
 
       {tracked.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed bg-card/50 p-14 text-center">
-          <div className="icon-tile size-12 text-chart-1">
-            <Wallet className="h-5 w-5" aria-hidden />
-          </div>
-          <p className="font-medium">No funds tracked yet</p>
-          <p className="max-w-sm text-sm text-muted-foreground">
-            Add a fund to get a monthly estimate of what your contributions are worth.
+        <div className="border-t border-border py-24 text-center">
+          <Wallet className="mx-auto h-6 w-6 text-primary" aria-hidden />
+          <p className="lower mt-6 font-heading text-3xl">nothing tracked yet.</p>
+          <p className="lower mx-auto mt-3 max-w-sm text-sm text-muted-foreground">
+            add a fund to get a monthly estimate of what your contributions are worth.
           </p>
-          <Button variant="outline" size="sm" onClick={() => setDialogOpen(true)} disabled={!fundsReady} className="mt-1">
-            Track your first fund
-          </Button>
+          <button
+            onClick={() => setDialogOpen(true)}
+            disabled={!fundsReady}
+            className="lower link-underline mt-6 font-mono text-xs text-primary disabled:opacity-50"
+          >
+            track your first fund ↗
+          </button>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div>
           {tracked.map((t) => {
             const fund = fundsBySlug.get(t.fundSlug);
             if (!fund) return null;

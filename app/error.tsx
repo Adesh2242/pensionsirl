@@ -2,8 +2,6 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { TriangleAlert } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
 
 export default function Error({
   error,
@@ -17,19 +15,24 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="container-page flex min-h-[60vh] max-w-md flex-col items-center justify-center text-center">
-      <div className="icon-tile size-14 text-destructive">
-        <TriangleAlert className="h-6 w-6" aria-hidden />
-      </div>
-      <p className="mt-6 text-sm font-medium text-muted-foreground">Error</p>
-      <h1 className="mt-2 text-2xl font-semibold">Something went wrong</h1>
-      <p className="mt-2 text-muted-foreground">
-        This page hit an unexpected error. You can try again, or head back home.
+    <div className="container-page flex min-h-[70svh] max-w-3xl flex-col justify-center px-6 py-24 md:px-10">
+      <p className="lower font-mono text-xs text-destructive">▸ error</p>
+      <h1 className="lower mt-8 font-heading text-[12vw] leading-[0.95] tracking-tight md:text-[5vw]">
+        something
+        <span className="block pl-[12%]">went wrong.</span>
+      </h1>
+      <p className="lower mt-8 max-w-md text-sm text-muted-foreground">
+        this page hit an unexpected error. you can try again, or head back home.
       </p>
-      <div className="mt-6 flex gap-3">
-        <Button onClick={() => reset()}>Try again</Button>
-        <Link href="/" className={buttonVariants({ variant: "outline" })}>
-          Go home
+      <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 border-t border-border pt-6">
+        <button
+          onClick={() => reset()}
+          className="lower pill inline-flex items-center gap-3 rounded-full px-6 py-3.5 text-sm transition-colors hover:text-primary"
+        >
+          try again <span aria-hidden>↗</span>
+        </button>
+        <Link href="/" className="lower link-underline font-mono text-xs text-muted-foreground hover:text-foreground">
+          go home ↗
         </Link>
       </div>
     </div>
