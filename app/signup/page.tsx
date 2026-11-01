@@ -7,6 +7,7 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { FormField } from "@/components/auth/form-field";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { describeAuthError } from "@/lib/auth-errors";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -33,7 +34,7 @@ export default function SignupPage() {
     });
     setLoading(false);
     if (error) {
-      setError(error.message);
+      setError(describeAuthError(error));
       return;
     }
     // Projects with email confirmation enabled (Supabase's default) return a

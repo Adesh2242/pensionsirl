@@ -29,6 +29,15 @@ The app runs against **real Gemini and Supabase auth** when `.env.local` is popu
   plain text (no markdown) since the chat UI intentionally doesn't use
   `dangerouslySetInnerHTML`. The AI Suggestions page discloses upfront that messages are
   sent to Google.
+- **Portfolio**: `/portfolio` (signed in). Each holding is a fund, its value on a
+  statement date, and monthly contributions (yours and your employer's). On every
+  visit each holding is estimated forward from that anchor at the fund's 1yr return
+  less its AMC; a new statement re-anchors it. The page totals the portfolio, shows
+  the change since your last visit, blended charge and risk, and the asset-class mix,
+  then projects 10/20/30 years on each fund's long-run (10yr, else 5yr) trend — capped
+  at 12%/yr, net of charges, with a cautious–optimistic range scaled by risk rating —
+  in future euros or today's money. Logic in `lib/portfolio/projection.ts`, storage in
+  `lib/portfolio/store.ts` (`tracked_funds`, migrations 004 + 005).
 - **Fund scraper**: `scripts/scrape-funds.ts` — a plain `fetch()` against each
   provider page's Next.js React Server Component payload (`/​{slug}.txt`), which
   embeds the same structured fund data the page renders from, no headless
@@ -83,7 +92,8 @@ Copy `.env.local.example` to `.env.local` and fill in:
 
 To stand up a real Supabase project: create one at [supabase.com](https://supabase.com)
 (EU region recommended), then run `supabase/migrations/001_initial_schema.sql` followed
-by `002_scraper_support.sql` via `supabase db push` or the SQL Editor. This creates the
+by `002_scraper_support.sql` (then `003`–`005` in order) via `supabase db push` or the
+SQL Editor. This creates the
 `providers`/`funds`/`fund_prices`/`profiles`/`saved_funds` tables with RLS policies.
 Once applied, run `pnpm scrape:funds` (needs `SUPABASE_SERVICE_ROLE_KEY`) to populate
 real fund data — the fund pages pick it up automatically, no code changes needed.
@@ -133,7 +143,7 @@ production site, plus:
 | Account deletion API | `app/api/account/route.ts` |
 | Consent logging API | `app/api/consent/route.ts` |
 | Durable rate limiting | `lib/rate-limit.ts` |
-| DB schema | `supabase/migrations/001_initial_schema.sql`, `002_scraper_support.sql` |
+| DB schema | `supabase/migrations/001_initial_schema.sql` … `005_portfolio_holdings.sql` |
 | Privacy policy | `app/privacy/page.tsx` |
 | Environment vars | `.env.local.example` |
 
