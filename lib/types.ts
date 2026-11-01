@@ -54,12 +54,30 @@ export interface UserProfile {
 export interface TrackedFund {
   id: string;
   fundSlug: string;
+  /** Optional name for the holding, e.g. "work pension" or "prsa". */
+  label?: string;
+  /** The holding's value on `valueAsOf` — from a statement, or what the user entered. */
   startValue: number;
+  /** ISO date (YYYY-MM-DD) that `startValue` was true on. The anchor for every estimate. */
+  valueAsOf: string;
+  /** The member's own monthly contribution. */
   monthlyContribution: number;
+  /** The employer's monthly contribution into the same holding. */
+  employerContribution: number;
   /** ISO date (YYYY-MM-DD) the user started tracking this holding. */
   startedAt: string;
   /** ISO datetime the user last saw/acknowledged an update for this holding. */
   lastSeenAt: string;
+}
+
+/** What a user enters to add or update a holding. */
+export interface HoldingInput {
+  fundSlug: string;
+  label?: string;
+  startValue: number;
+  valueAsOf: string;
+  monthlyContribution: number;
+  employerContribution: number;
 }
 
 export interface CalculatorInput {
