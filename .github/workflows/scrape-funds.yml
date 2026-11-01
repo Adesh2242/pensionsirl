@@ -15,12 +15,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
+
+      # pnpm comes from corepack, which ships with Node and installs the exact
+      # version pinned in package.json's packageManager field. That keeps
+      # every action in this job GitHub's own: no third-party code runs
+      # alongside the Supabase service-role key, and repos that only allow
+      # GitHub-authored actions can still run it. (setup-node's pnpm cache is
+      # dropped because it needs pnpm on PATH before corepack can provide it;
+      # a weekly job doesn't need it.)
+      - run: corepack enable
+        env:
+          COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
 
       - run: pnpm install --frozen-lockfile
 
