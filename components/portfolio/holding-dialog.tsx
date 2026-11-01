@@ -51,13 +51,15 @@ function Field({
 
 /**
  * Adds a holding, or updates one — most often with the figure from a new
- * statement, which re-anchors every estimate that follows.
+ * statement, which re-anchors every estimate that follows. When adding, "save
+ * & add another" keeps the dialog open so a whole set of pensions can go in
+ * at one sitting.
  */
 export function HoldingDialog({
   open,
   onOpenChange,
   funds,
-  excludeFundSlugs,
+  heldFundSlugs,
   defaultFundSlug,
   editing,
   onSave,
@@ -65,7 +67,8 @@ export function HoldingDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   funds: Fund[];
-  excludeFundSlugs: Set<string>;
+  /** Funds the user already holds. Still selectable — the same fund can sit in two schemes. */
+  heldFundSlugs: Set<string>;
   defaultFundSlug?: string;
   /** The holding being updated; omit to add a new one. */
   editing?: TrackedFund;
@@ -79,6 +82,7 @@ export function HoldingDialog({
   const [employer, setEmployer] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [addedCount, setAddedCount] = useState(0);
 
   // Reset the form whenever the dialog opens. Adjusting state during render
   // (rather than in an effect) avoids an extra render pass.
@@ -95,12 +99,21 @@ export function HoldingDialog({
       setPersonal(editing ? String(editing.monthlyContribution) : "");
       setEmployer(editing ? String(editing.employerContribution) : "");
       setError(null);
+      setAddedCount(0);
     }
   }
 
-  const availableFunds = funds.filter((f) => !excludeFundSlugs.has(f.slug) || f.slug === fundSlug);
+  function resetForAnother() {
+    setFundSlug("");
+    setLabel("");
+    setValue("");
+    setValueAsOf(today());
+    setPersonal("");
+    setEmployer("");
+    setError(null);
+  }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent, addAnother = false) {
     e.preventDefault();
     setError(null);
 
@@ -129,7 +142,12 @@ export function HoldingDialog({
         monthlyContribution: monthly,
         employerContribution: employerMonthly,
       });
-      onOpenChange(false);
+      if (addAnother) {
+        setAddedCount((n) => n + 1);
+        resetForAnother();
+      } else {
+        onOpenChange(false);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message.toLowerCase() : "something went wrong.");
     } finally {
@@ -138,6 +156,7 @@ export function HoldingDialog({
   }
 
   const fund = funds.find((f) => f.slug === fundSlug);
+  const alreadyHeld = !editing && heldFundSlugs.has(fundSlug);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -173,7 +192,7 @@ export function HoldingDialog({
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {availableFunds.map((f) => (
+                  {funds.map((f) => (
                     <SelectItem key={f.slug} value={f.slug}>
                       {f.providerName} — {f.name}
                     </SelectItem>
@@ -181,6 +200,13 @@ export function HoldingDialog({
                 </SelectContent>
               </Select>
             </Field>
+
+            {alreadyHeld && (
+              <p className="lower -mt-3 font-mono text-[0.7rem] text-warning">
+                you already hold this fund — fine if it&apos;s in another scheme. give this one a
+                name to tell them apart.
+              </p>
+            )}
 
             <Field id="h-label" label="name it (optional)" hint="e.g. work pension, prsa, avc">
               <Input
@@ -263,14 +289,31 @@ export function HoldingDialog({
             {error && <p className="lower font-mono text-xs text-destructive">{error}</p>}
           </div>
 
-          <DialogFooter className="mt-8 border-t border-border pt-6">
+          {addedCount > 0 && (
+            <p className="lower mt-6 font-mono text-xs text-success">
+              {addedCount} {addedCount === 1 ? "holding" : "holdings"} added — add the next, or
+              close when you&apos;re done.
+            </p>
+          )}
+
+          <DialogFooter className="mt-8 border-t border-border pt-6 sm:items-center">
             <button
               type="button"
               onClick={() => onOpenChange(false)}
               className="lower link-underline font-mono text-xs text-muted-foreground hover:text-foreground"
             >
-              cancel
+              {addedCount > 0 ? "done" : "cancel"}
             </button>
+            {!editing && (
+              <button
+                type="button"
+                disabled={saving}
+                onClick={(e) => handleSubmit(e, true)}
+                className="lower rounded-full border border-border px-5 py-3 text-sm transition-colors hover:border-foreground/30 hover:text-primary disabled:opacity-50"
+              >
+                save &amp; add another
+              </button>
+            )}
             <button
               type="submit"
               disabled={saving}

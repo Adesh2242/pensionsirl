@@ -147,9 +147,6 @@ export async function addTrackedFund(
   if ("isMock" in supabase) {
     const all = readAll();
     const existing = all[userId] ?? [];
-    if (existing.some((t) => t.fundSlug === input.fundSlug)) {
-      throw new Error("You're already tracking this fund.");
-    }
     const record: TrackedFund = {
       id: newId(),
       fundSlug: input.fundSlug,
@@ -172,7 +169,12 @@ export async function addTrackedFund(
     .select(legacySchema ? LEGACY_COLUMNS : COLUMNS)
     .single();
   if (error) {
-    throw new Error(error.code === "23505" ? "You're already tracking this fund." : error.message);
+    // 23505 only fires before migration 005 drops the one-holding-per-fund rule.
+    throw new Error(
+      error.code === "23505"
+        ? "You're already tracking this fund. Update that holding instead."
+        : error.message,
+    );
   }
   return rowToTrackedFund(data as unknown as TrackedFundRow);
 }

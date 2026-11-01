@@ -249,7 +249,7 @@ function PortfolioContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading: authLoading, isMockMode } = useAuth();
-  const { funds, source } = useFunds();
+  const { funds, status: fundsStatus } = useFunds();
   const [tracked, setTracked] = useState<TrackedFund[] | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<TrackedFund | undefined>(undefined);
@@ -260,10 +260,10 @@ function PortfolioContent() {
   const [now] = useState(() => new Date());
 
   // useFunds() seeds with mock data before the live Supabase fetch resolves.
-  // Holdings reference funds by slug, and a slug from the mock catalog may not
-  // exist in the live one, so adding waits for live data. In permanent mock
-  // mode mock slugs are the only ones that will ever exist.
-  const fundsReady = isMockMode || source === "supabase";
+  // Holdings reference funds by slug (a foreign key to the funds table), and a
+  // mock slug may not exist in the live catalog, so adding waits for live
+  // data. In permanent mock mode mock slugs are the only ones that exist.
+  const fundsReady = isMockMode || fundsStatus === "live" || fundsStatus === "not-configured";
 
   const prefillSlug = searchParams.get("add");
   const prefillFund =
@@ -345,9 +345,25 @@ function PortfolioContent() {
   if (authLoading || !user || tracked === null) {
     return (
       <div className="container-page max-w-4xl px-6 py-32 md:px-10">
-        <p className="lower font-mono text-xs text-muted-foreground">
-          {loadError ? loadError : "loading your portfolio…"}
-        </p>
+        {loadError ? (
+          <div className="border-l-2 border-warning py-1 pl-4">
+            <p className="lower font-heading text-2xl tracking-tight">
+              we couldn&apos;t reach your portfolio.
+            </p>
+            <p className="lower mt-3 max-w-md text-sm text-muted-foreground">
+              the database didn&apos;t answer. nothing has been lost — try again in a moment.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="lower link-underline mt-5 font-mono text-xs text-primary"
+            >
+              try again ↗
+            </button>
+            <p className="lower mt-6 font-mono text-[0.7rem] text-muted-foreground/70">{loadError}</p>
+          </div>
+        ) : (
+          <p className="lower font-mono text-xs text-muted-foreground">loading your portfolio…</p>
+        )}
         {!loadError && (
           <>
             <Skeleton className="mt-8 h-40 rounded-none" />
@@ -390,11 +406,19 @@ function PortfolioContent() {
 
       <section className="px-6 py-14 md:px-10 md:py-20">
         <div className="container-page px-0 md:px-0">
-          {!fundsReady && (
-            <p className="lower mb-6 font-mono text-xs text-muted-foreground">
-              loading live fund data…
-            </p>
-          )}
+          {!fundsReady &&
+            (fundsStatus === "unavailable" ? (
+              // Say so rather than leave "add" disabled behind a spinner that
+              // never resolves.
+              <p className="lower mb-8 border-l-2 border-warning py-1 pl-4 font-mono text-xs leading-relaxed text-warning">
+                live fund data can&apos;t be reached right now, so new holdings can&apos;t be saved.
+                your existing holdings are safe — try again shortly.
+              </p>
+            ) : (
+              <p className="lower mb-6 font-mono text-xs text-muted-foreground">
+                loading live fund data…
+              </p>
+            ))}
           {loadError && <p className="lower mb-6 font-mono text-xs text-destructive">{loadError}</p>}
 
           {positions.length === 0 ? (
@@ -666,7 +690,7 @@ function PortfolioContent() {
           if (!open && prefillSlug) router.replace("/portfolio");
         }}
         funds={funds}
-        excludeFundSlugs={new Set((tracked ?? []).map((t) => t.fundSlug))}
+        heldFundSlugs={new Set((tracked ?? []).map((t) => t.fundSlug))}
         defaultFundSlug={prefillFund?.slug}
         editing={editing}
         onSave={handleSave}

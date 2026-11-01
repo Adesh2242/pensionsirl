@@ -7,6 +7,7 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { FormField } from "@/components/auth/form-field";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { describeAuthError } from "@/lib/auth-errors";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -23,7 +24,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
-      setError(error.message);
+      setError(describeAuthError(error));
       return;
     }
     router.push("/");
