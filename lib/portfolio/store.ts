@@ -52,6 +52,9 @@ interface TrackedFundRow {
   employer_contribution?: number | null;
   started_at: string;
   last_seen_at: string;
+  amc_pct?: number | string | null;
+  contribution_charge_pct?: number | string | null;
+  policy_fee?: number | string | null;
 }
 
 function rowToTrackedFund(row: TrackedFundRow): TrackedFund {
@@ -65,13 +68,17 @@ function rowToTrackedFund(row: TrackedFundRow): TrackedFund {
     employerContribution: Number(row.employer_contribution ?? 0),
     startedAt: row.started_at,
     lastSeenAt: row.last_seen_at,
+    amcPct: row.amc_pct === null || row.amc_pct === undefined ? undefined : Number(row.amc_pct),
+    contributionChargePct: Number(row.contribution_charge_pct ?? 0),
+    policyFee: Number(row.policy_fee ?? 0),
   };
 }
 
 // Typed as plain strings so supabase-js returns untyped rows: the column set
-// is chosen at runtime (see legacySchema), which its select parser can't follow.
-const COLUMNS: string =
+// is chosen at runtime (see schema), which its select parser can't follow.
+const COLUMNS_005: string =
   "id, fund_slug, label, start_value, value_as_of, monthly_contribution, employer_contribution, started_at, last_seen_at";
+const COLUMNS_006: string = `${COLUMNS_005}, amc_pct, contribution_charge_pct, policy_fee`;
 
 /**
  * The 004 column set. Used until migration 005 has been applied to the
@@ -81,8 +88,14 @@ const COLUMNS: string =
 const LEGACY_COLUMNS: string =
   "id, fund_slug, start_value, monthly_contribution, started_at, last_seen_at";
 
-/** Set once a query reports the 005 columns missing; every later write then uses the 004 shape. */
-let legacySchema = false;
+/**
+ * The newest migration the project has, found by falling back on a
+ * missing-column error. Every later read and write uses that shape, so
+ * deploying ahead of a migration never breaks the portfolio page.
+ */
+let schema: 6 | 5 | 4 = 6;
+const columnsFor = (level: typeof schema) =>
+  level === 6 ? COLUMNS_006 : level === 5 ? COLUMNS_005 : LEGACY_COLUMNS;
 
 /** Postgres 42703 is undefined_column; PostgREST reports a missing column as PGRST204. */
 function isMissingColumn(error: { code?: string; message?: string }) {
@@ -100,20 +113,34 @@ function isMissingColumn(error: { code?: string; message?: string }) {
  * the estimate stays right even though the split and the label are lost.
  */
 function toRow(input: HoldingInput) {
-  if (legacySchema) {
+  if (schema === 4) {
     return {
       start_value: input.startValue,
       monthly_contribution: input.monthlyContribution + input.employerContribution,
       started_at: input.valueAsOf,
     };
   }
-  return {
+  const row = {
     label: input.label?.trim() || null,
     start_value: input.startValue,
     value_as_of: input.valueAsOf,
     monthly_contribution: input.monthlyContribution,
     employer_contribution: input.employerContribution,
   };
+  if (schema === 5) return row;
+  return {
+    ...row,
+    amc_pct: input.amcPct ?? null,
+    contribution_charge_pct: input.contributionChargePct ?? 0,
+    policy_fee: input.policyFee ?? 0,
+  };
+}
+
+/** Steps down one schema level after a missing-column error; false once there's nowhere left to go. */
+function fallBack(error: { code?: string; message?: string } | null): boolean {
+  if (!error || schema === 4 || !isMissingColumn(error)) return false;
+  schema = schema === 6 ? 5 : 4;
+  return true;
 }
 
 export async function listTrackedFunds(supabase: Client, userId: string): Promise<TrackedFund[]> {
@@ -121,18 +148,10 @@ export async function listTrackedFunds(supabase: Client, userId: string): Promis
     return readAll()[userId] ?? [];
   }
   const client = supabase as SupabaseClient;
-  let result = await client
-    .from("tracked_funds")
-    .select(legacySchema ? LEGACY_COLUMNS : COLUMNS)
-    .order("created_at", { ascending: true });
-
-  if (result.error && !legacySchema && isMissingColumn(result.error)) {
-    legacySchema = true;
-    result = await client
-      .from("tracked_funds")
-      .select(LEGACY_COLUMNS)
-      .order("created_at", { ascending: true });
-  }
+  const query = () =>
+    client.from("tracked_funds").select(columnsFor(schema)).order("created_at", { ascending: true });
+  let result = await query();
+  while (fallBack(result.error)) result = await query();
   if (result.error) throw result.error;
   return ((result.data ?? []) as unknown as TrackedFundRow[]).map(rowToTrackedFund);
 }
@@ -157,17 +176,23 @@ export async function addTrackedFund(
       employerContribution: input.employerContribution,
       startedAt: now.slice(0, 10),
       lastSeenAt: now,
+      amcPct: input.amcPct,
+      contributionChargePct: input.contributionChargePct ?? 0,
+      policyFee: input.policyFee ?? 0,
     };
     all[userId] = [...existing, record];
     writeAll(all);
     return record;
   }
 
-  const { data, error } = await (supabase as SupabaseClient)
-    .from("tracked_funds")
-    .insert({ user_id: userId, fund_slug: input.fundSlug, ...toRow(input) })
-    .select(legacySchema ? LEGACY_COLUMNS : COLUMNS)
-    .single();
+  const insert = () =>
+    (supabase as SupabaseClient)
+      .from("tracked_funds")
+      .insert({ user_id: userId, fund_slug: input.fundSlug, ...toRow(input) })
+      .select(columnsFor(schema))
+      .single();
+  let { data, error } = await insert();
+  while (fallBack(error)) ({ data, error } = await insert());
   if (error) {
     // 23505 only fires before migration 005 drops the one-holding-per-fund rule.
     throw new Error(
@@ -198,6 +223,9 @@ export async function updateTrackedFund(
         valueAsOf: input.valueAsOf,
         monthlyContribution: input.monthlyContribution,
         employerContribution: input.employerContribution,
+        amcPct: input.amcPct,
+        contributionChargePct: input.contributionChargePct ?? 0,
+        policyFee: input.policyFee ?? 0,
       };
       return updated;
     });
@@ -206,12 +234,15 @@ export async function updateTrackedFund(
     return updated;
   }
 
-  const { data, error } = await (supabase as SupabaseClient)
-    .from("tracked_funds")
-    .update(toRow(input))
-    .eq("id", id)
-    .select(legacySchema ? LEGACY_COLUMNS : COLUMNS)
-    .single();
+  const update = () =>
+    (supabase as SupabaseClient)
+      .from("tracked_funds")
+      .update(toRow(input))
+      .eq("id", id)
+      .select(columnsFor(schema))
+      .single();
+  let { data, error } = await update();
+  while (fallBack(error)) ({ data, error } = await update());
   if (error) throw new Error(error.message);
   return rowToTrackedFund(data as unknown as TrackedFundRow);
 }

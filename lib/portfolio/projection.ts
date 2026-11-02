@@ -12,27 +12,96 @@ function monthlyRate(annualPct: number): number {
   return Math.pow(1 + annualPct / 100, 1 / 12) - 1;
 }
 
+// ─── Charges: what a holding costs ──────────────────────────────────────────
+
 /**
- * Compounds a value monthly, adding a contribution at the end of each month.
- * Never returns a negative pot.
+ * Annual management charge assumed when neither the user nor the fund gives
+ * one. The live fund source publishes no charges, and 1% is typical for an
+ * Irish personal pension or PRSA (the standard PRSA cap).
+ */
+export const ASSUMED_AMC_PCT = 1;
+
+export interface HoldingCharges {
+  /** Annual management charge, % of the pot a year. */
+  amcPct: number;
+  /** Where amcPct came from: the user's statement, the fund's published figure, or ASSUMED_AMC_PCT. */
+  amcSource: "yours" | "fund" | "assumed";
+  /** % taken off each contribution before it's invested. */
+  contributionChargePct: number;
+  /** Flat euros a year. */
+  policyFee: number;
+}
+
+export function chargesFor(holding: TrackedFund, fund: Fund): HoldingCharges {
+  const [amcPct, amcSource]: [number, HoldingCharges["amcSource"]] =
+    holding.amcPct !== undefined
+      ? [holding.amcPct, "yours"]
+      : fund.amc !== undefined
+        ? [fund.amc, "fund"]
+        : [ASSUMED_AMC_PCT, "assumed"];
+  return {
+    amcPct,
+    amcSource,
+    contributionChargePct: holding.contributionChargePct ?? 0,
+    policyFee: holding.policyFee ?? 0,
+  };
+}
+
+/** The euros each kind of charge took in one month. */
+export interface MonthFees {
+  amc: number;
+  contribution: number;
+  policy: number;
+}
+
+/**
+ * Moves one holding on a month: growth at `annualReturnPct` less the annual
+ * charge, then the month's contribution less any contribution charge, then a
+ * twelfth of the policy fee. Returns the new value (never negative) and what
+ * each charge took.
+ */
+function stepMonth(
+  value: number,
+  annualReturnPct: number,
+  contribution: number,
+  charges: HoldingCharges,
+): { value: number; fees: MonthFees } {
+  const grown = value * (1 + monthlyRate(annualReturnPct - charges.amcPct));
+  // The charge is the growth the pot would have had without it.
+  const amc = Math.max(value * (1 + monthlyRate(annualReturnPct)) - grown, 0);
+  const contributionFee = (contribution * charges.contributionChargePct) / 100;
+  const beforeFee = Math.max(grown + contribution - contributionFee, 0);
+  const policy = Math.min(charges.policyFee / 12, beforeFee);
+  return { value: beforeFee - policy, fees: { amc, contribution: contributionFee, policy } };
+}
+
+const NO_CHARGES: HoldingCharges = {
+  amcPct: 0,
+  amcSource: "yours",
+  contributionChargePct: 0,
+  policyFee: 0,
+};
+
+/**
+ * Compounds a value monthly, adding a contribution at the end of each month,
+ * net of `charges`. Never returns a negative pot.
  */
 export function projectValue({
   startValue,
   monthlyContribution,
   annualReturnPct,
-  amcPct,
+  charges = NO_CHARGES,
   months,
 }: {
   startValue: number;
   monthlyContribution: number;
   annualReturnPct: number;
-  amcPct: number | undefined;
+  charges?: HoldingCharges;
   months: number;
 }): number {
-  const rate = monthlyRate(annualReturnPct - (amcPct ?? 0));
   let value = startValue;
   for (let i = 0; i < months; i++) {
-    value = value * (1 + rate) + monthlyContribution;
+    value = stepMonth(value, annualReturnPct, monthlyContribution, charges).value;
   }
   return Math.max(Math.round(value * 100) / 100, 0);
 }
@@ -46,7 +115,7 @@ export function totalMonthly(holding: TrackedFund): number {
 /**
  * Estimates a holding's value on `at`, starting from the value the user
  * entered on `valueAsOf` and growing it month by month at the fund's most
- * recent (1yr) return net of its charge, plus contributions.
+ * recent (1yr) return net of its charges, plus contributions.
  *
  * Tracking uses the 1yr figure on purpose: it is the best evidence of how the
  * fund actually did over the months since the user's statement. The long-run
@@ -56,8 +125,8 @@ export function estimateHoldingValue(holding: TrackedFund, fund: Fund, at: Date)
   return projectValue({
     startValue: holding.startValue,
     monthlyContribution: totalMonthly(holding),
-    annualReturnPct: fund.oneYearReturn,
-    amcPct: fund.amc,
+    annualReturnPct: returnFor(fund, "1y") ?? 0,
+    charges: chargesFor(holding, fund),
     months: monthsBetween(new Date(holding.valueAsOf), at),
   });
 }
@@ -91,14 +160,14 @@ export interface GrowthAssumption {
 
 /**
  * The yearly growth rate a fund is projected at: its 5-year average yearly
- * return, less its annual charge, with a cautious–optimistic range around it
+ * return, less the holding's annual charge (`amcPct`), with a cautious–optimistic range around it
  * scaled by risk. A fund younger than five years falls back to its 3-year,
  * then 1-year average, and says so; one with no history assumes no growth.
  *
  * Deliberately not last year's return: one year is too noisy to compound for
  * decades, and five years spans both good and bad markets.
  */
-export function growthAssumption(fund: Fund): GrowthAssumption {
+export function growthAssumption(fund: Fund, amcPct: number): GrowthAssumption {
   const five = returnFor(fund, "5y");
   const three = returnFor(fund, "3y");
   const one = returnFor(fund, "1y");
@@ -111,7 +180,7 @@ export function growthAssumption(fund: Fund): GrowthAssumption {
           ? ["1yr", one]
           : ["none", 0];
 
-  const expectedPct = averagePct - (fund.amc ?? 0);
+  const expectedPct = averagePct - amcPct;
   // No history means no basis for a range either.
   const spread = basis === "none" ? 0 : RISK_SPREAD_PER_POINT * fund.riskRating;
   return {
@@ -135,46 +204,67 @@ export interface ProjectionPoint {
   paidIn: number;
 }
 
+/** What charges take over the horizon, in the expected case. */
+export interface ChargesBreakdown {
+  /** Annual management charges taken from the pot. */
+  amc: number;
+  /** Taken off contributions before they're invested. */
+  contribution: number;
+  /** Flat policy fees. */
+  policy: number;
+  /** amc + contribution + policy: the euros actually taken. */
+  paid: number;
+  /** Growth those euros would have earned had they stayed invested. */
+  lostGrowth: number;
+  /** How much smaller the pot ends up than with no charges at all: paid + lostGrowth. */
+  impact: number;
+  /** Charges taken in the first year — what they cost now. */
+  firstYear: number;
+  /** Per holding, in `positions` order. */
+  perHolding: { firstYear: number; paid: number; impact: number }[];
+}
+
 export interface PortfolioProjection {
   points: ProjectionPoint[];
   /** Total of all contributions over the horizon (nominal euros). */
   contributionsOverPeriod: number;
-  /** How much less the expected pot is than it would be with zero charges. */
-  chargesCost: number;
+  charges: ChargesBreakdown;
 }
 
 type Position = { holding: TrackedFund; fund: Fund; valueNow: number };
 
 /**
  * Projects the whole portfolio forward `years` from `now`, month by month,
- * holding by holding, in three scenarios. With `real`, every figure is
- * deflated into today's money at INFLATION_PCT.
+ * holding by holding, in three scenarios — and alongside them the expected
+ * case with no charges at all, to price what charges cost. With `real`, every
+ * figure is deflated into today's money at INFLATION_PCT.
  */
 export function projectPortfolio(
   positions: Position[],
   { years, now, real }: { years: number; now: Date; real: boolean },
 ): PortfolioProjection {
-  const assumptions = positions.map((p) => growthAssumption(p.fund));
-  const rates = assumptions.map((a) => ({
-    cautious: monthlyRate(a.cautiousPct),
-    expected: monthlyRate(a.expectedPct),
-    optimistic: monthlyRate(a.optimisticPct),
+  const charges = positions.map((p) => chargesFor(p.holding, p.fund));
+  const assumptions = positions.map((p, i) => growthAssumption(p.fund, charges[i].amcPct));
+  // Each scenario's return before the annual charge, which stepMonth takes off.
+  const gross = assumptions.map((a, i) => ({
+    cautious: a.cautiousPct + charges[i].amcPct,
+    expected: a.averagePct,
+    optimistic: a.optimisticPct + charges[i].amcPct,
   }));
-  // The same expected path with charges added back, to price what they cost.
-  const grossRates = positions.map((p, i) =>
-    monthlyRate(assumptions[i].expectedPct + (p.fund.amc ?? 0)),
-  );
 
   const cautious = positions.map((p) => p.valueNow);
   const expected = positions.map((p) => p.valueNow);
   const optimistic = positions.map((p) => p.valueNow);
-  const gross = positions.map((p) => p.valueNow);
+  const noCharges = positions.map((p) => p.valueNow);
   const monthly = positions.map((p) => totalMonthly(p.holding));
 
   const startTotal = positions.reduce((sum, p) => sum + p.valueNow, 0);
   const monthlyTotal = monthly.reduce((sum, m) => sum + m, 0);
   const deflator = (offset: number) => (real ? Math.pow(1 + INFLATION_PCT / 100, offset) : 1);
   const sum = (values: number[]) => values.reduce((total, v) => total + Math.max(v, 0), 0);
+
+  const fees = { amc: 0, contribution: 0, policy: 0 };
+  const perHolding = positions.map(() => ({ firstYear: 0, paid: 0, impact: 0 }));
 
   const points: ProjectionPoint[] = [
     {
@@ -188,15 +278,23 @@ export function projectPortfolio(
   ];
 
   for (let offset = 1; offset <= years; offset++) {
+    // Fees taken during this year, counted in that year's money.
+    const d = deflator(offset);
     for (let month = 0; month < 12; month++) {
       for (let i = 0; i < positions.length; i++) {
-        cautious[i] = cautious[i] * (1 + rates[i].cautious) + monthly[i];
-        expected[i] = expected[i] * (1 + rates[i].expected) + monthly[i];
-        optimistic[i] = optimistic[i] * (1 + rates[i].optimistic) + monthly[i];
-        gross[i] = gross[i] * (1 + grossRates[i]) + monthly[i];
+        cautious[i] = stepMonth(cautious[i], gross[i].cautious, monthly[i], charges[i]).value;
+        optimistic[i] = stepMonth(optimistic[i], gross[i].optimistic, monthly[i], charges[i]).value;
+        noCharges[i] = stepMonth(noCharges[i], gross[i].expected, monthly[i], NO_CHARGES).value;
+        const step = stepMonth(expected[i], gross[i].expected, monthly[i], charges[i]);
+        expected[i] = step.value;
+        const taken = (step.fees.amc + step.fees.contribution + step.fees.policy) / d;
+        fees.amc += step.fees.amc / d;
+        fees.contribution += step.fees.contribution / d;
+        fees.policy += step.fees.policy / d;
+        perHolding[i].paid += taken;
+        if (offset === 1) perHolding[i].firstYear += taken;
       }
     }
-    const d = deflator(offset);
     points.push({
       year: now.getFullYear() + offset,
       offset,
@@ -207,10 +305,24 @@ export function projectPortfolio(
     });
   }
 
+  const endDeflator = deflator(years);
+  perHolding.forEach((h, i) => {
+    h.impact = Math.max(noCharges[i] - expected[i], 0) / endDeflator;
+  });
+  const paid = fees.amc + fees.contribution + fees.policy;
+  const impact = Math.max(sum(noCharges) - sum(expected), 0) / endDeflator;
+
   return {
     points,
     contributionsOverPeriod: monthlyTotal * 12 * years,
-    chargesCost: Math.max(sum(gross) - sum(expected), 0) / deflator(years),
+    charges: {
+      ...fees,
+      paid,
+      lostGrowth: Math.max(impact - paid, 0),
+      impact,
+      firstYear: perHolding.reduce((total, h) => total + h.firstYear, 0),
+      perHolding,
+    },
   };
 }
 
@@ -223,8 +335,12 @@ export interface PortfolioSummary {
   lastVisit: Date | null;
   monthlyPersonal: number;
   monthlyEmployer: number;
-  /** Value-weighted annual charge across holdings, or null if none publish one. */
-  blendedAmc: number | null;
+  /** Value-weighted annual management charge across holdings (equal weights while all are at zero). */
+  blendedAmc: number;
+  /** True when any holding's charge is ASSUMED_AMC_PCT rather than the user's or the fund's. */
+  amcAssumed: boolean;
+  /** Every charge the portfolio pays over the next 12 months at today's value and contributions. */
+  yearlyChargesNow: number;
   /** Value-weighted SRI risk rating. */
   blendedRisk: number;
   allocation: { assetClass: AssetClass; value: number; share: number }[];
@@ -249,12 +365,21 @@ export function summarisePortfolio(positions: Position[], now: Date): PortfolioS
       )
     : valueNow;
 
-  const withAmc = positions.filter((p) => p.fund.amc !== undefined && p.valueNow > 0);
-  const amcWeight = withAmc.reduce((sum, p) => sum + p.valueNow, 0);
+  const charges = positions.map((p) => chargesFor(p.holding, p.fund));
+  const weights = positions.map((p) => (valueNow > 0 ? p.valueNow : 1));
+  const weightTotal = weights.reduce((sum, w) => sum + w, 0);
   const blendedAmc =
-    amcWeight > 0
-      ? withAmc.reduce((sum, p) => sum + p.valueNow * (p.fund.amc ?? 0), 0) / amcWeight
-      : null;
+    weightTotal > 0
+      ? charges.reduce((sum, c, i) => sum + c.amcPct * weights[i], 0) / weightTotal
+      : 0;
+  const yearlyChargesNow = positions.reduce(
+    (sum, p, i) =>
+      sum +
+      (p.valueNow * charges[i].amcPct) / 100 +
+      (totalMonthly(p.holding) * 12 * charges[i].contributionChargePct) / 100 +
+      charges[i].policyFee,
+    0,
+  );
 
   const blendedRisk =
     valueNow > 0
@@ -283,6 +408,8 @@ export function summarisePortfolio(positions: Position[], now: Date): PortfolioS
     monthlyPersonal: positions.reduce((sum, p) => sum + p.holding.monthlyContribution, 0),
     monthlyEmployer: positions.reduce((sum, p) => sum + p.holding.employerContribution, 0),
     blendedAmc,
+    amcAssumed: charges.some((c) => c.amcSource === "assumed"),
+    yearlyChargesNow,
     blendedRisk,
     allocation,
   };
