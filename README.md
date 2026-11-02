@@ -38,12 +38,18 @@ The app runs against **real Gemini and Supabase auth** when `.env.local` is popu
   at 12%/yr, net of charges, with a cautious–optimistic range scaled by risk rating —
   in future euros or today's money. Logic in `lib/portfolio/projection.ts`, storage in
   `lib/portfolio/store.ts` (`tracked_funds`, migrations 004 + 005).
-- **Fund scraper**: `scripts/scrape-funds.ts` — a plain `fetch()` against each
+- **Fund scraper**: `lib/scraper/scrape-funds.ts` — a plain `fetch()` against each
   provider page's Next.js React Server Component payload (`/​{slug}.txt`), which
   embeds the same structured fund data the page renders from, no headless
-  browser needed. Scheduled via `.github/workflows/scrape-funds.yml`. Verified
-  against the live site (`pnpm scrape:funds --dry-run`): 388 real funds across
-  all 10 providers, in under 2 seconds.
+  browser needed. Runs weekly (Mondays 06:00 UTC) as a **Netlify scheduled
+  function**, `netlify/functions/scrape-funds.mts`, which needs
+  `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in the site's Netlify
+  environment variables and skips with a log line until both are set; run it on
+  demand from Netlify → Logs → Functions → `scrape-funds` → **Run now**, or by hand
+  with `pnpm scrape:funds` (`scripts/scrape-funds.ts`). A run that scrapes 0 funds
+  fails rather than recording a "success". Verified against the live site
+  (`pnpm scrape:funds --dry-run`): 388 real funds across all 10 providers, in under
+  2 seconds.
 - **Security**: static CSP + standard security headers (`next.config.ts`), same-origin
   check on the AI route, durable rate limiting (`lib/rate-limit.ts` — Upstash Redis when
   configured, in-memory sliding window otherwise), `error.tsx`/`global-error.tsx`
@@ -86,7 +92,7 @@ Copy `.env.local.example` to `.env.local` and fill in:
 |---|---|
 | `GEMINI_API_KEY` | Enables live AI suggestions via Gemini instead of templated mock replies |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Enables real Supabase auth + fund data instead of the localStorage/mock-data fallback |
-| `SUPABASE_SERVICE_ROLE_KEY` | Needed for real account deletion (`app/api/account/route.ts`) and for `pnpm scrape:funds` to write |
+| `SUPABASE_SERVICE_ROLE_KEY` | Needed for real account deletion (`app/api/account/route.ts`) and for the fund scraper to write (`pnpm scrape:funds` and the Netlify scheduled function) |
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Durable rate limiting on the AI route instead of the in-memory fallback |
 | `NEXT_PUBLIC_SITE_URL` | Your real domain, used in `metadataBase`/sitemap/robots |
 
@@ -134,7 +140,7 @@ production site, plus:
 |---|---|
 | Mock fund data (fallback) | `lib/mock-data.ts`, `lib/types.ts` |
 | Supabase-first fund data access | `lib/data/funds.server.ts` (Server Components), `lib/hooks/use-funds.ts` (Client Components), `lib/supabase/funds-queries.ts`, `lib/supabase/public.ts` |
-| Fund scraper | `scripts/scrape-funds.ts`, `.github/workflows/scrape-funds.yml` |
+| Fund scraper | `lib/scraper/scrape-funds.ts`, `netlify/functions/scrape-funds.mts`, `scripts/scrape-funds.ts` |
 | Tax relief / projection math | `lib/calculations.ts` |
 | Supabase clients (real + mock fallback) | `lib/supabase/client.ts`, `lib/supabase/server.ts`, `lib/supabase/mock-client.ts`, `lib/supabase/admin.ts` (service-role, server-only) |
 | Auth state | `lib/auth-context.tsx` |
