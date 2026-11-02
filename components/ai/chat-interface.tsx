@@ -18,7 +18,7 @@ export function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [source, setSource] = useState<"mock" | "gemini" | null>(null);
+  const [source, setSource] = useState<"mock" | "fallback" | "gemini" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -55,9 +55,11 @@ export function ChatInterface() {
 
   return (
     <div className="flex flex-col">
-      {source === "mock" && (
+      {(source === "mock" || source === "fallback") && (
         <p className="lower mb-6 font-mono text-xs text-muted-foreground">
-          demo mode — set GEMINI_API_KEY for live ai responses
+          {source === "mock"
+            ? "built-in answers from the fund catalog — live ai isn't switched on"
+            : "live ai couldn't be reached — showing a built-in answer from the fund catalog"}
         </p>
       )}
 
