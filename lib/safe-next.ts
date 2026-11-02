@@ -1,3 +1,6 @@
+/** Where signing in lands by default: the portfolio is the heart of the site. */
+export const HOME_AFTER_SIGN_IN = "/portfolio";
+
 /**
  * Where to send someone after they sign in: the `next` path they were trying
  * to reach, or `fallback`.
@@ -9,7 +12,10 @@
  * browsers strip tabs and newlines, so `/\t/evil.com` collapses to
  * `//evil.com`.
  */
-export function safeNextPath(raw: string | null | undefined, fallback = "/"): string {
+export function safeNextPath(
+  raw: string | null | undefined,
+  fallback = HOME_AFTER_SIGN_IN,
+): string {
   if (!raw) return fallback;
   if (!raw.startsWith("/") || raw.startsWith("//")) return fallback;
   if (/[\\\s\u0000-\u001f\u007f]/.test(raw)) return fallback;

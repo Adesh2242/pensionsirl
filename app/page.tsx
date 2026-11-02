@@ -15,6 +15,13 @@ import { formatLastUpdated } from "@/lib/utils";
 // morning instead of waiting for the next deploy.
 export const revalidate = 3600;
 
+const portfolioPoints = [
+  ["every pension you hold,", "in one place"],
+  ["kept current from", "each fund's returns"],
+  ["10, 20, 30-year projection", "on 5-year averages"],
+  ["what charges will", "cost you, in euros"],
+];
+
 const tools = [
   {
     no: "01",
@@ -66,28 +73,36 @@ export default async function Home() {
     <>
       {/* Hero */}
       <Field className="inset-frame flex min-h-[94svh] flex-col justify-between" tone="teal">
-        <HeroCorners left="irish pension fund explorer" right="free · no account needed" />
+        <HeroCorners left="your irish pensions, in one place" right="free · track every pension you hold" />
 
         <div className="flex flex-1 items-center px-6 pt-40 md:px-10">
           <Ragged
             as="h1"
             className="w-full text-[12vw] leading-[0.92] md:text-[7vw]"
-            lines={["every irish pension", "fund — compared,", "projected, explained."]}
+            lines={["all your pensions,", "one portfolio —", "tracked and projected."]}
           />
         </div>
 
         <div className="px-6 pb-10 md:px-10">
-          <Magnetic>
+          <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
+            <Magnetic>
+              <Link
+                href="/portfolio"
+                className="lower group inline-flex items-center gap-3 rounded-full bg-primary px-6 py-3.5 text-sm text-primary-foreground transition-opacity hover:opacity-90"
+              >
+                build your portfolio
+                <span className="animate-nudge inline-block" aria-hidden="true">
+                  ↗
+                </span>
+              </Link>
+            </Magnetic>
             <Link
               href="/funds"
-              className="lower pill group inline-flex items-center gap-3 rounded-full px-6 py-3.5 text-sm transition-colors hover:text-primary"
+              className="lower link-underline text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
-              explore the funds
-              <span className="animate-nudge inline-block" aria-hidden="true">
-                ↗
-              </span>
+              or explore all {funds.length} funds
             </Link>
-          </Magnetic>
+          </div>
 
           <div className="mt-12 grid gap-6 border-t border-border pt-8 sm:grid-cols-3">
             {[
@@ -103,6 +118,41 @@ export default async function Home() {
           </div>
         </div>
       </Field>
+
+      {/* The portfolio — the heart of the site */}
+      <section className="px-6 pt-28 md:px-10 md:pt-40">
+        <div className="container-page px-0 md:px-0">
+          <SectionLabel>your portfolio</SectionLabel>
+          <Link
+            href="/portfolio"
+            className="group mt-10 block border-y border-border py-12 transition-colors md:py-16"
+          >
+            <div className="grid gap-10 md:grid-cols-[1.2fr_1fr] md:items-end">
+              <div>
+                <span className="font-mono text-sm text-primary">00 · start here</span>
+                <h2 className="lower mt-6 font-heading text-[9vw] leading-[1] tracking-tight transition-colors group-hover:text-primary md:text-[4.4vw]">
+                  add what you hold. see where it&apos;s going.
+                </h2>
+                <p className="lower mt-6 max-w-lg text-base text-muted-foreground md:text-lg">
+                  enter each pension from your statement — value, what you and your employer pay in,
+                  and its charges. we keep it current every week and show what it could be worth.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-x-8 gap-y-6">
+                {portfolioPoints.map(([top, bottom]) => (
+                  <div key={top} className="border-t border-border pt-4">
+                    <p className="lower text-sm">{top}</p>
+                    <p className="lower text-sm text-muted-foreground">{bottom}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <span className="lower mt-10 inline-flex items-center gap-3 font-mono text-xs text-primary">
+              open my portfolio <span aria-hidden>↗</span>
+            </span>
+          </Link>
+        </div>
+      </section>
 
       {/* Statement + figures */}
       <section className="px-6 py-28 md:px-10 md:py-40">
@@ -150,7 +200,7 @@ export default async function Home() {
           <AnimatedText
             as="h2"
             className="lower mt-10 block max-w-3xl text-[7vw] leading-[1] md:text-[3.4vw]"
-            text="four tools, one catalog."
+            text="and four tools around it."
           />
 
           <div className="mt-16 grid border-t border-border md:grid-cols-2 lg:grid-cols-4">
@@ -206,25 +256,25 @@ export default async function Home() {
           <AnimatedText
             as="h2"
             className="lower mt-8 block max-w-3xl text-[9vw] leading-[1] md:text-[4.4vw]"
-            text="see what your pension could be worth."
+            text="see what your pensions could be worth."
           />
           <div className="mt-10 flex flex-wrap items-center gap-4">
             <Magnetic>
               <Link
-                href="/calculator"
+                href="/portfolio"
                 className="lower group inline-flex items-center gap-3 rounded-full bg-[#101514] px-6 py-3.5 text-sm text-[#f5f5f2] transition-opacity hover:opacity-90"
               >
-                open the calculator
+                start your portfolio
                 <span className="animate-nudge inline-block" aria-hidden="true">
                   ↗
                 </span>
               </Link>
             </Magnetic>
             <Link
-              href="/portfolio"
+              href="/calculator"
               className="lower link-underline text-sm text-[#6b7671] transition-colors hover:text-[#101514]"
             >
-              track the pensions you hold
+              or try the calculator
             </Link>
             <Link
               href="/how-it-works"
