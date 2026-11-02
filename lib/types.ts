@@ -35,12 +35,23 @@ export interface Fund {
   sfdrArticle?: SfdrArticle;
   manager?: string;
   description: string;
+  /**
+   * Returns as average yearly percentages. The live source publishes 3/5/10
+   * years as cumulative totals; lib/supabase/funds-queries.ts converts them
+   * on read, so every figure here is "per year". A period listed in
+   * `missingReturns` has no history (the fund is younger than that) and its
+   * number here is a placeholder 0 — check with hasReturn() before using it.
+   */
   oneYearReturn: number;
-  /** Interpolated between 1yr/5yr when sourced from the live scraper, which only publishes 1Y/5Y/10Y. */
   threeYearReturn: number;
   fiveYearReturn: number;
   tenYearReturn?: number;
+  missingReturns?: ReturnPeriod[];
+  /** True for funds from the live catalog, as opposed to the illustrative demo set. */
+  live?: boolean;
 }
+
+export type ReturnPeriod = "1y" | "3y" | "5y";
 
 export interface UserProfile {
   id: string;

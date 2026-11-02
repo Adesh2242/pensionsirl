@@ -5,6 +5,7 @@ import { AssetClassBadge } from "@/components/funds/asset-class-badge";
 import { ReturnValue } from "@/components/funds/return-value";
 import type { Fund } from "@/lib/types";
 import { formatAmc } from "@/lib/utils";
+import { returnFor } from "@/lib/fund-returns";
 
 /**
  * One fund as an editorial row rather than a card: index, name, class and risk
@@ -43,7 +44,7 @@ export function FundRow({ fund, index }: { fund: Fund; index: number }) {
         </div>
         <div className="md:text-right">
           <p className="lower font-mono text-[0.65rem] text-muted-foreground">1yr</p>
-          <ReturnValue value={fund.oneYearReturn} className="mt-1 font-heading text-lg" />
+          <ReturnValue value={returnFor(fund, "1y")} className="mt-1 font-heading text-lg" />
         </div>
         <span
           className="hidden text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:text-primary md:inline"

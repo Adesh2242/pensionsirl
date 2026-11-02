@@ -18,6 +18,7 @@ import { assetClasses } from "@/lib/mock-data";
 import { useFunds } from "@/lib/hooks/use-funds";
 import { formatLastUpdated } from "@/lib/utils";
 import type { AssetClass } from "@/lib/types";
+import { returnFor } from "@/lib/fund-returns";
 
 const PAGE_SIZE = 24;
 
@@ -54,7 +55,14 @@ function FundsExplorer() {
         sorted.sort((a, b) => (a.amc ?? Infinity) - (b.amc ?? Infinity));
         break;
       case "return-desc":
-        sorted.sort((a, b) => b.oneYearReturn - a.oneYearReturn);
+        // Funds with no 1-year history yet sort last, not as if they returned 0%.
+        sorted.sort((a, b) => {
+          const ra = returnFor(a, "1y");
+          const rb = returnFor(b, "1y");
+          if (ra === null) return rb === null ? 0 : 1;
+          if (rb === null) return -1;
+          return rb - ra;
+        });
         break;
       case "risk-asc":
         sorted.sort((a, b) => a.riskRating - b.riskRating);

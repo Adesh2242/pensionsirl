@@ -11,6 +11,10 @@ import { AnimatedText } from "@/components/editorial/animated-text";
 import { getAllFunds, getAllProviders, getLastScrapeTime } from "@/lib/data/funds.server";
 import { formatLastUpdated } from "@/lib/utils";
 
+// Rebuilt at most hourly, so a Monday scrape reaches the home page the same
+// morning instead of waiting for the next deploy.
+export const revalidate = 3600;
+
 const tools = [
   {
     no: "01",

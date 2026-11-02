@@ -1,4 +1,5 @@
 import type { AssetClass, Fund, TrackedFund } from "@/lib/types";
+import { returnFor } from "@/lib/fund-returns";
 
 /** Full calendar months between two dates (never negative). */
 export function monthsBetween(start: Date, end: Date): number {
@@ -64,14 +65,6 @@ export function estimateHoldingValue(holding: TrackedFund, fund: Fund, at: Date)
 // ─── Projection: what it could be worth ─────────────────────────────────────
 
 /**
- * Long-run annual returns are capped to this band before they are compounded
- * for decades. One exceptional five years shouldn't become a 20-year promise,
- * and one bad one shouldn't project a pot to nothing.
- */
-export const TREND_CAP_PCT = 12;
-export const TREND_FLOOR_PCT = -2;
-
-/**
  * Half-width of the cautious–optimistic range, per point of SRI risk rating.
  * A risk-1 cash fund gets ±0.75%/yr; a risk-6 equity fund gets ±4.5%/yr —
  * wide enough to be honest about what "current trends" can't tell you.
@@ -82,36 +75,51 @@ export const RISK_SPREAD_PER_POINT = 0.75;
 export const INFLATION_PCT = 2;
 
 export interface GrowthAssumption {
-  /** Which published figure the trend is based on. */
-  basis: "10yr" | "5yr";
-  /** The fund's long-run annualised return, before the cap. */
-  trendPct: number;
-  /** Net of charges, after the cap — the expected case. */
+  /**
+   * Which return the projection rests on: the 5-year average, or — for a fund
+   * too young to have one — the longest history it does have. "none" means
+   * no return history at all, so no growth is assumed.
+   */
+  basis: "5yr" | "3yr" | "1yr" | "none";
+  /** That average yearly return, before charges. */
+  averagePct: number;
+  /** After the fund's annual charge — the expected case. */
   expectedPct: number;
   cautiousPct: number;
   optimisticPct: number;
-  /** True when the cap or floor changed the trend. */
-  capped: boolean;
 }
 
 /**
- * The growth rate a fund is projected at: its longest published annualised
- * return (10yr when the live data has it, otherwise 5yr), held inside a sane
- * band, minus its annual charge, with a range around it scaled by risk.
+ * The yearly growth rate a fund is projected at: its 5-year average yearly
+ * return, less its annual charge, with a cautious–optimistic range around it
+ * scaled by risk. A fund younger than five years falls back to its 3-year,
+ * then 1-year average, and says so; one with no history assumes no growth.
+ *
+ * Deliberately not last year's return: one year is too noisy to compound for
+ * decades, and five years spans both good and bad markets.
  */
 export function growthAssumption(fund: Fund): GrowthAssumption {
-  const basis = fund.tenYearReturn !== undefined ? "10yr" : "5yr";
-  const trendPct = fund.tenYearReturn ?? fund.fiveYearReturn;
-  const bounded = Math.min(Math.max(trendPct, TREND_FLOOR_PCT), TREND_CAP_PCT);
-  const expectedPct = bounded - (fund.amc ?? 0);
-  const spread = RISK_SPREAD_PER_POINT * fund.riskRating;
+  const five = returnFor(fund, "5y");
+  const three = returnFor(fund, "3y");
+  const one = returnFor(fund, "1y");
+  const [basis, averagePct]: [GrowthAssumption["basis"], number] =
+    five !== null
+      ? ["5yr", five]
+      : three !== null
+        ? ["3yr", three]
+        : one !== null
+          ? ["1yr", one]
+          : ["none", 0];
+
+  const expectedPct = averagePct - (fund.amc ?? 0);
+  // No history means no basis for a range either.
+  const spread = basis === "none" ? 0 : RISK_SPREAD_PER_POINT * fund.riskRating;
   return {
     basis,
-    trendPct,
+    averagePct,
     expectedPct,
     cautiousPct: expectedPct - spread,
     optimisticPct: expectedPct + spread,
-    capped: bounded !== trendPct,
   };
 }
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/layout/navbar";
+import { FundDataUpdated } from "@/components/layout/fund-data-updated";
 
 const tools = [
   { href: "/portfolio", label: "my portfolio" },
@@ -89,7 +90,9 @@ export function Footer() {
 
       <div className="border-t border-border">
         <div className="container-page lower flex flex-col gap-2 py-6 font-mono text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} pensioniq. all figures are illustrative.</p>
+          <p>
+            © {new Date().getFullYear()} pensioniq · <FundDataUpdated />
+          </p>
           <p>not regulated financial advice · sourced from public provider fund centres</p>
         </div>
       </div>
