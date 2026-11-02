@@ -69,10 +69,11 @@ changes.
 `scripts/scrape-funds.ts` — **not** a Cheerio HTTP scraper as originally planned: the
 fund tables on `funds.nationalpensionhelpline.ie` are rendered client-side (confirmed by
 inspecting the raw HTML response, which has no fund data in it), so it uses Playwright
-to render the page and read the table DOM. This also means it **can't run as a Supabase
-Edge Function** (Deno has no headless browser) — it's scheduled via
-`.github/workflows/scrape-funds.yml` (GitHub Actions cron, **weekly, Mondays 06:00
-UTC**) instead of `pg_cron`.
+to render the page and read the table DOM. *(Since replaced: it now reads each
+provider page's RSC payload with a plain `fetch()` — see README. It runs weekly,
+**Mondays 06:00 UTC**, as a Netlify scheduled function,
+`netlify/functions/scrape-funds.mts`. It used to be a GitHub Actions cron, which
+never ran because of a billing lock on the GitHub account.)*
 
 Verified with `pnpm scrape:funds --dry-run` against the real site: scraped **136 real
 funds** across all 10 providers with actual risk ratings, categories, and 1yr/5yr/10yr
@@ -84,11 +85,11 @@ verify the actual Supabase write path, only the scraping/parsing logic. To go li
    (adds `subcategory`, `ten_year_return`, makes `amc`/`nav` nullable, adds the
    `fund_prices_latest` view, and — a pre-existing gap in 001 I caught while wiring up
    the "last updated" display — enables RLS on `scrape_log`, which had none).
-2. Add `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` as GitHub Actions
-   repository secrets (Settings → Secrets and variables → Actions).
-3. Run `pnpm scrape:funds` locally once (or trigger the workflow manually via
-   `workflow_dispatch`) to confirm the write path works, then let the weekly cron take
-   over.
+2. Add `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` to the site's Netlify
+   environment variables (Site configuration → Environment variables).
+3. Run it once from Netlify (Logs → Functions → `scrape-funds` → Run now) or with
+   `pnpm scrape:funds` locally to confirm the write path works, then let the weekly
+   schedule take over.
 
 **"Fund data last updated" display**: `/funds` and `/funds/[id]` read the latest
 successful `scrape_log.finished_at` (via `fetchLastScrapeTime` in
