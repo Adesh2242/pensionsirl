@@ -217,6 +217,12 @@ export default async function Home() {
               </Link>
             </Magnetic>
             <Link
+              href="/portfolio"
+              className="lower link-underline text-sm text-[#6b7671] transition-colors hover:text-[#101514]"
+            >
+              track the pensions you hold
+            </Link>
+            <Link
               href="/how-it-works"
               className="lower link-underline text-sm text-[#6b7671] transition-colors hover:text-[#101514]"
             >

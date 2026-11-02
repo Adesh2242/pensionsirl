@@ -18,6 +18,7 @@ import { useAuth } from "@/lib/auth-context";
 import { createClient } from "@/lib/supabase/client";
 import { readConsent } from "@/lib/consent";
 import { listTrackedFunds } from "@/lib/portfolio/store";
+import { loginHref } from "@/lib/safe-next";
 import { PageIntro } from "@/components/editorial/page-intro";
 import { SectionLabel } from "@/components/editorial/section-label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,7 +35,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.replace("/login");
+      router.replace(loginHref("/settings"));
     }
   }, [loading, user, router]);
 

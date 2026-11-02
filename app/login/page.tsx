@@ -1,16 +1,18 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { Suspense, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { FormField } from "@/components/auth/form-field";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { describeAuthError } from "@/lib/auth-errors";
+import { safeNextPath } from "@/lib/safe-next";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const next = safeNextPath(useSearchParams().get("next"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +29,7 @@ export default function LoginPage() {
       setError(describeAuthError(error));
       return;
     }
-    router.push("/");
+    router.push(next);
     router.refresh();
   }
 
@@ -43,13 +45,16 @@ export default function LoginPage() {
       footer={
         <>
           no account yet?{" "}
-          <Link href="/signup" className="link-underline text-foreground">
+          <Link
+            href={next === "/" ? "/signup" : `/signup?next=${encodeURIComponent(next)}`}
+            className="link-underline text-foreground"
+          >
             create one
           </Link>
         </>
       }
     >
-      <GoogleSignInButton />
+      <GoogleSignInButton next={next} />
       <p className="lower my-7 font-mono text-xs text-muted-foreground">or continue with email</p>
 
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -83,5 +88,14 @@ export default function LoginPage() {
         </button>
       </form>
     </AuthShell>
+  );
+}
+
+export default function LoginPage() {
+  // useSearchParams() needs a Suspense boundary to prerender.
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }

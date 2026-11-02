@@ -1,16 +1,18 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { Suspense, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { FormField } from "@/components/auth/form-field";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { describeAuthError } from "@/lib/auth-errors";
+import { safeNextPath } from "@/lib/safe-next";
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter();
+  const next = safeNextPath(useSearchParams().get("next"));
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -43,7 +45,7 @@ export default function SignupPage() {
       setConfirmEmailSent(true);
       return;
     }
-    router.push("/");
+    router.push(next);
     router.refresh();
   }
 
@@ -82,13 +84,16 @@ export default function SignupPage() {
       footer={
         <>
           already have an account?{" "}
-          <Link href="/login" className="link-underline text-foreground">
+          <Link
+            href={next === "/" ? "/login" : `/login?next=${encodeURIComponent(next)}`}
+            className="link-underline text-foreground"
+          >
             log in
           </Link>
         </>
       }
     >
-      <GoogleSignInButton />
+      <GoogleSignInButton next={next} />
       <p className="lower my-7 font-mono text-xs text-muted-foreground">or sign up with email</p>
 
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -132,5 +137,14 @@ export default function SignupPage() {
         </button>
       </form>
     </AuthShell>
+  );
+}
+
+export default function SignupPage() {
+  // useSearchParams() needs a Suspense boundary to prerender.
+  return (
+    <Suspense>
+      <SignupForm />
+    </Suspense>
   );
 }

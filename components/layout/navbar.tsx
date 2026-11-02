@@ -8,15 +8,19 @@ import { useAuth } from "@/lib/auth-context";
 const primaryLinks = [
   { href: "/funds", label: "funds" },
   { href: "/compare", label: "compare" },
+  { href: "/calculator", label: "calculator" },
 ] as const;
 
+// Portfolio is listed for everyone: logged out, it takes you to log in and
+// then straight back to it.
 const secondaryLinks = [
-  { href: "/calculator", label: "calculator" },
   { href: "/ai-suggestions", label: "ai" },
+  { href: "/portfolio", label: "portfolio" },
 ] as const;
 
 const allLinks = [
   { href: "/", label: "home" },
+  { href: "/portfolio", label: "my portfolio" },
   { href: "/funds", label: "funds" },
   { href: "/compare", label: "compare" },
   { href: "/calculator", label: "calculator" },
@@ -165,14 +169,6 @@ export function Navbar() {
           <div className="lower mt-14 flex flex-wrap items-center gap-x-8 gap-y-3 font-mono text-sm">
             {!loading && user ? (
               <>
-                <Link
-                  href="/portfolio"
-                  onClick={() => setOpen(false)}
-                  tabIndex={open ? 0 : -1}
-                  className="text-muted-foreground transition-colors hover:text-primary"
-                >
-                  my portfolio ↗
-                </Link>
                 <Link
                   href="/settings"
                   onClick={() => setOpen(false)}

@@ -26,7 +26,7 @@ function GoogleLogo() {
   );
 }
 
-export function GoogleSignInButton() {
+export function GoogleSignInButton({ next = "/" }: { next?: string }) {
   const [loading, setLoading] = useState(false);
   const configured = isSupabaseConfigured();
 
@@ -36,7 +36,9 @@ export function GoogleSignInButton() {
     setLoading(true);
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+      },
     });
     // Browser navigates away to Google; no need to clear loading on success.
   }
