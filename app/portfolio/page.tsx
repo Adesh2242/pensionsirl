@@ -21,10 +21,14 @@ import {
   updateTrackedFund,
 } from "@/lib/portfolio/store";
 import {
+  ASSUMED_AMC_PCT,
   INFLATION_PCT,
   RISK_SPREAD_PER_POINT,
+  chargesFor,
+  type HoldingCharges,
   estimateHoldingValue,
   growthAssumption,
+  type ChargesBreakdown,
   type GrowthAssumption,
   monthsBetween,
   projectPortfolio,
@@ -98,6 +102,16 @@ function describeGrowth(a: GrowthAssumption): string {
   return `under 5 years old, so projected at its ${years}-year average, ${rate}`;
 }
 
+/** "1.00% a year (assumed) · 3% of contributions · €50 a year policy fee" */
+function describeCharges(c: HoldingCharges): string {
+  const parts = [
+    `${c.amcPct.toFixed(2)}% a year${c.amcSource === "assumed" ? " (assumed)" : c.amcSource === "fund" ? " (fund's published charge)" : ""}`,
+  ];
+  if (c.contributionChargePct > 0) parts.push(`${c.contributionChargePct}% of contributions`);
+  if (c.policyFee > 0) parts.push(`${formatEuro(c.policyFee)} a year policy fee`);
+  return parts.join(" · ");
+}
+
 function HoldingRow({
   position,
   index,
@@ -111,6 +125,7 @@ function HoldingRow({
 }) {
   const { holding, fund, valueNow } = position;
   const [confirming, setConfirming] = useState(false);
+  const charges = chargesFor(holding, fund);
 
   // Growth since the anchor = what it's worth now, less the anchored value and
   // every contribution made since. The rest is the fund's return.
@@ -198,8 +213,19 @@ function HoldingRow({
         {holding.startValue === 0
           ? `started from nothing on ${formatDate(holding.valueAsOf, true)}, built up from contributions`
           : `${formatEuro(holding.startValue)} on ${formatDate(holding.valueAsOf, true)}`}
-        , estimated forward at this fund&apos;s 1yr return less its charge.{" "}
-        <span className="text-foreground">{describeGrowth(growthAssumption(fund))}</span>.
+        , estimated forward at this fund&apos;s 1yr return less its charges.{" "}
+        <span className="text-foreground">{describeGrowth(growthAssumption(fund, charges.amcPct))}</span>.
+        <br />
+        charges: <span className="text-foreground">{describeCharges(charges)}</span>
+        {charges.amcSource === "assumed" && (
+          <>
+            {" "}
+            —{" "}
+            <button onClick={onUpdate} className="link-underline text-primary">
+              add yours from your statement
+            </button>
+          </>
+        )}
         {stale && (
           <span className="text-warning">
             {" "}
@@ -207,6 +233,146 @@ function HoldingRow({
           </span>
         )}
       </p>
+    </div>
+  );
+}
+
+function ChargesSection({
+  positions,
+  charges,
+  horizon,
+  moneyLabel,
+  amcAssumed,
+  onEdit,
+}: {
+  positions: Position[];
+  charges: ChargesBreakdown;
+  horizon: number;
+  moneyLabel: string;
+  amcAssumed: boolean;
+  onEdit: (holding: TrackedFund) => void;
+}) {
+  const parts = [
+    { label: "management charges", value: charges.amc, note: "a % of your pot, every year" },
+    {
+      label: "contribution charges",
+      value: charges.contribution,
+      note: "taken off what you pay in",
+    },
+    { label: "policy fees", value: charges.policy, note: "flat yearly fees" },
+    {
+      label: "growth lost",
+      value: charges.lostGrowth,
+      note: "what the charges would have earned",
+    },
+  ];
+  return (
+    <div id="charges" className="mt-24 scroll-mt-28">
+      <SectionLabel>{`charges over ${horizon} years`}</SectionLabel>
+      <div className="mt-8 border-t border-border pt-10">
+        <p className="lower font-mono text-xs text-muted-foreground">
+          over the next {horizon} years you&apos;d pay about
+        </p>
+        <p className="tabular mt-3 font-heading text-[12vw] leading-none tracking-tight text-destructive md:text-[5.5vw]">
+          {formatEuro(charges.paid)}
+        </p>
+        <p className="tabular lower mt-4 max-w-2xl font-mono text-xs leading-relaxed text-muted-foreground">
+          in charges, starting at {formatEuro(charges.firstYear)} this year and rising as your pot
+          grows. with the growth that money would have earned, your pot ends up{" "}
+          <span className="text-foreground">{formatEuro(charges.impact)}</span> smaller than with no
+          charges · {moneyLabel}
+        </p>
+        {amcAssumed && (
+          <p className="lower mt-5 max-w-2xl border-l-2 border-warning py-1 pl-4 font-mono text-xs leading-relaxed text-warning">
+            fund data doesn&apos;t include charges, so a typical {ASSUMED_AMC_PCT.toFixed(2)}% a year
+            is assumed where you haven&apos;t entered yours. your statement or policy document lists
+            the real ones — add them below to make this exact.
+          </p>
+        )}
+      </div>
+
+      <div className="mt-12 grid border-t border-border sm:grid-cols-2 lg:grid-cols-4">
+        {parts.map((part, i) => (
+          <div
+            key={part.label}
+            className={`border-border py-7 ${i > 0 ? "sm:px-8" : "sm:pr-8"} ${i % 2 === 1 ? "sm:border-l" : ""} ${i === 2 ? "lg:border-l" : ""}`}
+          >
+            <p className="lower font-mono text-xs text-muted-foreground">{part.label}</p>
+            <p className="tabular mt-3 font-heading text-3xl">{formatEuro(part.value)}</p>
+            <p className="lower mt-1.5 font-mono text-xs text-muted-foreground">{part.note}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="border-t border-border pt-6">
+        <p className="lower font-mono text-xs text-muted-foreground">by holding</p>
+        <div className="mt-5 overflow-x-auto">
+          <table className="w-full min-w-[44rem] text-left">
+            <thead>
+              <tr className="lower font-mono text-xs text-muted-foreground">
+                <th className="pb-3 font-normal">fund</th>
+                <th className="pb-3 text-right font-normal">annual charge</th>
+                <th className="pb-3 text-right font-normal">on contributions</th>
+                <th className="pb-3 text-right font-normal">policy fee / yr</th>
+                <th className="pb-3 text-right font-normal">this year</th>
+                <th className="pb-3 text-right font-normal">over {horizon} years</th>
+                <th className="pb-3 text-right font-normal">pot smaller by</th>
+                <th className="pb-3 font-normal" />
+              </tr>
+            </thead>
+            <tbody>
+              {positions.map(({ holding, fund }, i) => {
+                const c = chargesFor(holding, fund);
+                const row = charges.perHolding[i];
+                return (
+                  <tr key={holding.id} className="border-t border-border text-sm">
+                    <td className="lower py-3 pr-4">{holding.label ?? fund.name}</td>
+                    <td className="tabular py-3 text-right">
+                      {c.amcPct.toFixed(2)}%
+                      {c.amcSource === "assumed" && (
+                        <span className="lower ml-1.5 font-mono text-xs text-warning">assumed</span>
+                      )}
+                    </td>
+                    <td className="tabular py-3 text-right">{c.contributionChargePct}%</td>
+                    <td className="tabular py-3 text-right">{formatEuro(c.policyFee)}</td>
+                    <td className="tabular py-3 text-right">{formatEuro(row.firstYear)}</td>
+                    <td className="tabular py-3 text-right">{formatEuro(row.paid)}</td>
+                    <td className="tabular py-3 text-right text-destructive">
+                      {formatEuro(row.impact)}
+                    </td>
+                    <td className="py-3 pl-4 text-right">
+                      <button
+                        onClick={() => onEdit(holding)}
+                        className="lower link-underline font-mono text-xs text-primary"
+                      >
+                        {c.amcSource === "yours" ? "edit" : "add yours"}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <ul className="lower mt-6 space-y-2 font-mono text-xs leading-relaxed text-muted-foreground">
+          <li>
+            ▸ annual management charge (amc): a % of the whole pot taken every year — on your
+            statement as &ldquo;amc&rdquo;, &ldquo;fund management charge&rdquo; or &ldquo;annual
+            charge&rdquo;.
+          </li>
+          <li>
+            ▸ contribution charge: a % taken off each payment before it&apos;s invested. an
+            &ldquo;allocation rate&rdquo; of 95% means a 5% charge; 100% or more means none.
+          </li>
+          <li>
+            ▸ policy fee: a flat yearly or monthly fee some policies charge (enter it per year).
+          </li>
+          <li>
+            ▸ figures follow the expected case above, with contributions as they are today. a
+            standard prsa caps charges at 1% a year and 5% of contributions.
+          </li>
+        </ul>
+      </div>
     </div>
   );
 }
@@ -395,7 +561,11 @@ function PortfolioContent() {
   const weightTotal = weights.reduce((sum, w) => sum + w, 0);
   const blendedGrowth =
     weightTotal > 0
-      ? positions.reduce((sum, p, i) => sum + growthAssumption(p.fund).expectedPct * weights[i], 0) /
+      ? positions.reduce(
+          (sum, p, i) =>
+            sum + growthAssumption(p.fund, chargesFor(p.holding, p.fund).amcPct).expectedPct * weights[i],
+          0,
+        ) /
         weightTotal
       : 0;
   const sinceLastVisit = summary.valueNow - summary.valueAtLastVisit;
@@ -507,16 +677,14 @@ function PortfolioContent() {
                   </p>
                 </div>
                 <div className="border-border py-7 lg:border-l lg:px-8">
-                  <p className="lower font-mono text-xs text-muted-foreground">blended charge</p>
+                  <p className="lower font-mono text-xs text-muted-foreground">charges</p>
                   <p className="tabular mt-3 font-heading text-3xl">
-                    {summary.blendedAmc !== null ? `${summary.blendedAmc.toFixed(2)}%` : "—"}
+                    {formatEuro(summary.yearlyChargesNow)}
+                    <span className="text-lg text-muted-foreground"> /yr</span>
                   </p>
                   <p className="lower mt-1.5 font-mono text-xs text-muted-foreground">
-                    ≈{" "}
-                    {summary.blendedAmc !== null
-                      ? formatEuro((summary.valueNow * summary.blendedAmc) / 100)
-                      : "—"}{" "}
-                    a year at today&apos;s value
+                    {summary.blendedAmc.toFixed(2)}% a year blended
+                    {summary.amcAssumed && <span className="text-warning"> · partly assumed</span>}
                   </p>
                 </div>
                 <div className="border-border py-7 sm:border-l sm:px-8">
@@ -617,10 +785,13 @@ function PortfolioContent() {
                   <div className="border-border py-7 md:border-l md:px-8">
                     <p className="lower font-mono text-xs text-muted-foreground">charges will cost</p>
                     <p className="tabular mt-3 font-heading text-3xl text-destructive">
-                      {formatEuro(projection.chargesCost)}
+                      {formatEuro(projection.charges.impact)}
                     </p>
                     <p className="lower mt-1.5 font-mono text-xs text-muted-foreground">
-                      vs the same funds with no charge
+                      vs no charges ·{" "}
+                      <a href="#charges" className="link-underline hover:text-foreground">
+                        see the breakdown ↓
+                      </a>
                     </p>
                   </div>
                 </div>
@@ -647,7 +818,7 @@ function PortfolioContent() {
                       </thead>
                       <tbody>
                         {positions.map(({ holding, fund }) => {
-                          const a = growthAssumption(fund);
+                          const a = growthAssumption(fund, chargesFor(holding, fund).amcPct);
                           return (
                             <tr key={holding.id} className="border-t border-border text-sm">
                               <td className="lower py-3 pr-4">{holding.label ?? fund.name}</td>
@@ -706,6 +877,16 @@ function PortfolioContent() {
                   </ul>
                 </div>
               </div>
+
+              {/* ── Charges ───────────────────────────────────────────── */}
+              <ChargesSection
+                positions={positions}
+                charges={projection.charges}
+                horizon={horizon}
+                moneyLabel={moneyLabel}
+                amcAssumed={summary.amcAssumed}
+                onEdit={openUpdate}
+              />
 
               {/* ── Holdings ──────────────────────────────────────────── */}
               <div className="mt-24">

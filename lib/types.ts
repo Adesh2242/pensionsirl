@@ -79,6 +79,16 @@ export interface TrackedFund {
   startedAt: string;
   /** ISO datetime the user last saw/acknowledged an update for this holding. */
   lastSeenAt: string;
+  /**
+   * The holding's own annual management charge, % a year, from the user's
+   * statement. Undefined = not entered: the fund's published charge, then a
+   * typical one, is assumed instead.
+   */
+  amcPct?: number;
+  /** % taken off each contribution before it's invested (100% − allocation rate). */
+  contributionChargePct?: number;
+  /** Flat yearly policy fee in euros. */
+  policyFee?: number;
 }
 
 /** What a user enters to add or update a holding. */
@@ -89,6 +99,9 @@ export interface HoldingInput {
   valueAsOf: string;
   monthlyContribution: number;
   employerContribution: number;
+  amcPct?: number;
+  contributionChargePct?: number;
+  policyFee?: number;
 }
 
 export interface CalculatorInput {

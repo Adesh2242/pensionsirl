@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import type { Fund, HoldingInput, TrackedFund } from "@/lib/types";
 import { returnFor } from "@/lib/fund-returns";
+import { ASSUMED_AMC_PCT } from "@/lib/portfolio/projection";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -81,6 +82,9 @@ export function HoldingDialog({
   const [valueAsOf, setValueAsOf] = useState(today());
   const [personal, setPersonal] = useState("");
   const [employer, setEmployer] = useState("");
+  const [amc, setAmc] = useState("");
+  const [contributionCharge, setContributionCharge] = useState("");
+  const [policyFee, setPolicyFee] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [addedCount, setAddedCount] = useState(0);
@@ -99,6 +103,9 @@ export function HoldingDialog({
       setValueAsOf(today());
       setPersonal(editing ? String(editing.monthlyContribution) : "");
       setEmployer(editing ? String(editing.employerContribution) : "");
+      setAmc(editing?.amcPct !== undefined ? String(editing.amcPct) : "");
+      setContributionCharge(editing?.contributionChargePct ? String(editing.contributionChargePct) : "");
+      setPolicyFee(editing?.policyFee ? String(editing.policyFee) : "");
       setError(null);
       setAddedCount(0);
     }
@@ -111,6 +118,9 @@ export function HoldingDialog({
     setValueAsOf(today());
     setPersonal("");
     setEmployer("");
+    setAmc("");
+    setContributionCharge("");
+    setPolicyFee("");
     setError(null);
   }
 
@@ -122,6 +132,9 @@ export function HoldingDialog({
     const anchor = value.trim() === "" && editing ? editing.valueAsOf : valueAsOf;
     const monthly = personal.trim() === "" ? 0 : Number(personal);
     const employerMonthly = employer.trim() === "" ? 0 : Number(employer);
+    const amcPct = amc.trim() === "" ? undefined : Number(amc);
+    const contributionChargePct = contributionCharge.trim() === "" ? 0 : Number(contributionCharge);
+    const yearlyFee = policyFee.trim() === "" ? 0 : Number(policyFee);
 
     if (!fundSlug) return setError("choose a fund.");
     if (!Number.isFinite(startValue) || startValue < 0) return setError("enter a valid value.");
@@ -130,6 +143,12 @@ export function HoldingDialog({
     if (!Number.isFinite(monthly) || monthly < 0) return setError("enter a valid monthly contribution.");
     if (!Number.isFinite(employerMonthly) || employerMonthly < 0)
       return setError("enter a valid employer contribution.");
+    if (amcPct !== undefined && (!Number.isFinite(amcPct) || amcPct < 0 || amcPct > 10))
+      return setError("the annual charge should be between 0% and 10%.");
+    if (!Number.isFinite(contributionChargePct) || contributionChargePct < 0 || contributionChargePct > 20)
+      return setError("the contribution charge should be between 0% and 20%.");
+    if (!Number.isFinite(yearlyFee) || yearlyFee < 0 || yearlyFee > 10000)
+      return setError("enter a valid policy fee.");
     if (startValue === 0 && monthly === 0 && employerMonthly === 0)
       return setError("add a value, a monthly contribution, or both.");
 
@@ -142,6 +161,9 @@ export function HoldingDialog({
         valueAsOf: anchor,
         monthlyContribution: monthly,
         employerContribution: employerMonthly,
+        amcPct,
+        contributionChargePct,
+        policyFee: yearlyFee,
       });
       if (addAnother) {
         setAddedCount((n) => n + 1);
@@ -161,7 +183,7 @@ export function HoldingDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         {/* noValidate: our checks below own every message. Native constraint
             validation would block submit on a future date with a browser
             tooltip and leave the previous error showing. */}
@@ -279,6 +301,58 @@ export function HoldingDialog({
               </Field>
             </div>
 
+            <div className="border-t border-border pt-5">
+              <p className="lower font-mono text-xs text-foreground">charges · from your statement</p>
+              <p className="lower mt-1 font-mono text-[0.7rem] text-muted-foreground">
+                fund data doesn&apos;t include charges. leave the annual charge empty and{" "}
+                {fund?.amc !== undefined ? `the fund's ${fund.amc.toFixed(2)}%` : `a typical ${ASSUMED_AMC_PCT}%`}{" "}
+                is assumed.
+              </p>
+              <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
+                <Field id="h-amc" label="annual charge %">
+                  <Input
+                    id="h-amc"
+                    type="number"
+                    min="0"
+                    max="10"
+                    step="0.01"
+                    inputMode="decimal"
+                    placeholder={String(fund?.amc ?? ASSUMED_AMC_PCT)}
+                    className={fieldClass}
+                    value={amc}
+                    onChange={(e) => setAmc(e.target.value)}
+                  />
+                </Field>
+                <Field id="h-cc" label="on contributions %" hint="100 − allocation rate">
+                  <Input
+                    id="h-cc"
+                    type="number"
+                    min="0"
+                    max="20"
+                    step="0.01"
+                    inputMode="decimal"
+                    placeholder="0"
+                    className={fieldClass}
+                    value={contributionCharge}
+                    onChange={(e) => setContributionCharge(e.target.value)}
+                  />
+                </Field>
+                <Field id="h-fee" label="policy fee € / yr">
+                  <Input
+                    id="h-fee"
+                    type="number"
+                    min="0"
+                    step="1"
+                    inputMode="decimal"
+                    placeholder="0"
+                    className={fieldClass}
+                    value={policyFee}
+                    onChange={(e) => setPolicyFee(e.target.value)}
+                  />
+                </Field>
+              </div>
+            </div>
+
             {fund && (
               <p className="lower font-mono text-[0.7rem] leading-relaxed text-muted-foreground">
                 {returnFor(fund, "1y") === null ? (
@@ -289,7 +363,7 @@ export function HoldingDialog({
                     {fund.oneYearReturn.toFixed(1)}%), less its{" "}
                   </>
                 )}
-                {fund.amc !== undefined ? `${fund.amc.toFixed(2)}%` : "unpublished"} charge.
+                charges.
               </p>
             )}
 
