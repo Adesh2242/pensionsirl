@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Wordmark } from "@/components/layout/navbar";
 
 const tools = [
+  { href: "/portfolio", label: "my portfolio" },
   { href: "/funds", label: "fund explorer" },
   { href: "/compare", label: "compare funds" },
   { href: "/calculator", label: "retirement calculator" },

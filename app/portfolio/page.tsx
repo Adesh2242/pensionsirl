@@ -32,6 +32,7 @@ import {
   totalMonthly,
 } from "@/lib/portfolio/projection";
 import { formatEuro } from "@/lib/utils";
+import { loginHref } from "@/lib/safe-next";
 import type { AssetClass, Fund, HoldingInput, TrackedFund } from "@/lib/types";
 
 const HORIZONS = [10, 20, 30] as const;
@@ -269,9 +270,12 @@ function PortfolioContent() {
   const prefillFund =
     prefillSlug && fundsReady ? funds.find((f) => f.slug === prefillSlug) : undefined;
 
+  // Logged out: log in, then come straight back — keeping any ?add= fund.
   useEffect(() => {
-    if (!authLoading && !user) router.replace("/login");
-  }, [authLoading, user, router]);
+    if (authLoading || user) return;
+    const query = searchParams.toString();
+    router.replace(loginHref(`/portfolio${query ? `?${query}` : ""}`));
+  }, [authLoading, user, router, searchParams]);
 
   useEffect(() => {
     if (!user) return;
