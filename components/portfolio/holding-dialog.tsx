@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Fund, HoldingInput, TrackedFund } from "@/lib/types";
+import { returnFor } from "@/lib/fund-returns";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -280,8 +281,14 @@ export function HoldingDialog({
 
             {fund && (
               <p className="lower font-mono text-[0.7rem] leading-relaxed text-muted-foreground">
-                tracked at this fund&apos;s 1yr return ({fund.oneYearReturn >= 0 ? "+" : ""}
-                {fund.oneYearReturn.toFixed(1)}%), less its{" "}
+                {returnFor(fund, "1y") === null ? (
+                  <>this fund has no 1-year history yet, so it&apos;s tracked with no growth, less its{" "}</>
+                ) : (
+                  <>
+                    tracked at this fund&apos;s 1yr return ({fund.oneYearReturn >= 0 ? "+" : ""}
+                    {fund.oneYearReturn.toFixed(1)}%), less its{" "}
+                  </>
+                )}
                 {fund.amc !== undefined ? `${fund.amc.toFixed(2)}%` : "unpublished"} charge.
               </p>
             )}

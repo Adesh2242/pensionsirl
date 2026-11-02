@@ -23,15 +23,15 @@ import {
 import {
   INFLATION_PCT,
   RISK_SPREAD_PER_POINT,
-  TREND_CAP_PCT,
   estimateHoldingValue,
   growthAssumption,
+  type GrowthAssumption,
   monthsBetween,
   projectPortfolio,
   summarisePortfolio,
   totalMonthly,
 } from "@/lib/portfolio/projection";
-import { formatEuro } from "@/lib/utils";
+import { formatEuro, formatLastUpdated } from "@/lib/utils";
 import { loginHref } from "@/lib/safe-next";
 import type { AssetClass, Fund, HoldingInput, TrackedFund } from "@/lib/types";
 
@@ -88,6 +88,15 @@ function Chip({
 }
 
 type Position = { holding: TrackedFund; fund: Fund; valueNow: number };
+
+/** "projected at its 5-year average, +5.4% a year" — and says so when it had to fall back. */
+function describeGrowth(a: GrowthAssumption): string {
+  const rate = `${a.averagePct >= 0 ? "+" : ""}${a.averagePct.toFixed(1)}% a year`;
+  if (a.basis === "5yr") return `projected at its 5-year average, ${rate}`;
+  if (a.basis === "none") return "no return history yet, so no growth is projected";
+  const years = a.basis === "3yr" ? "3" : "1";
+  return `under 5 years old, so projected at its ${years}-year average, ${rate}`;
+}
 
 function HoldingRow({
   position,
@@ -189,7 +198,8 @@ function HoldingRow({
         {holding.startValue === 0
           ? `started from nothing on ${formatDate(holding.valueAsOf, true)}, built up from contributions`
           : `${formatEuro(holding.startValue)} on ${formatDate(holding.valueAsOf, true)}`}
-        , estimated forward at this fund&apos;s 1yr return less its charge.
+        , estimated forward at this fund&apos;s 1yr return less its charge.{" "}
+        <span className="text-foreground">{describeGrowth(growthAssumption(fund))}</span>.
         {stale && (
           <span className="text-warning">
             {" "}
@@ -250,7 +260,7 @@ function PortfolioContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading: authLoading, isMockMode } = useAuth();
-  const { funds, status: fundsStatus } = useFunds();
+  const { funds, status: fundsStatus, lastScrapeTime } = useFunds();
   const [tracked, setTracked] = useState<TrackedFund[] | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<TrackedFund | undefined>(undefined);
@@ -379,6 +389,15 @@ function PortfolioContent() {
   }
 
   const end = projection.points[projection.points.length - 1];
+  // Weighted by what's in each holding today; equal weights while every
+  // holding is still at zero (contribution-only).
+  const weights = positions.map((p) => (summary.valueNow > 0 ? p.valueNow : 1));
+  const weightTotal = weights.reduce((sum, w) => sum + w, 0);
+  const blendedGrowth =
+    weightTotal > 0
+      ? positions.reduce((sum, p, i) => sum + growthAssumption(p.fund).expectedPct * weights[i], 0) /
+        weightTotal
+      : 0;
   const sinceLastVisit = summary.valueNow - summary.valueAtLastVisit;
   const showSinceLastVisit =
     summary.lastVisit !== null && Math.abs(sinceLastVisit) >= 1 && positions.length > 0;
@@ -393,7 +412,9 @@ function PortfolioContent() {
         tone="slate"
         corners={{
           left: `${positions.length} ${positions.length === 1 ? "holding" : "holdings"}`,
-          right: "estimates, not statements",
+          right: lastScrapeTime
+            ? `fund data updated ${formatDate(lastScrapeTime, true)}`
+            : "estimates, not statements",
         }}
         lead="your pensions in one place — valued from your statements, kept current from each fund's returns, and projected forward on their long-run trend."
       >
@@ -442,6 +463,16 @@ function PortfolioContent() {
                 </p>
                 <p className="tabular mt-3 font-heading text-[14vw] leading-none tracking-tight md:text-[7vw]">
                   {formatEuro(summary.valueNow)}
+                </p>
+                <p className="lower mt-4 font-mono text-xs text-muted-foreground">
+                  estimated from each fund&apos;s latest returns ·{" "}
+                  {lastScrapeTime ? (
+                    <span className="text-foreground">
+                      fund data updated {formatLastUpdated(lastScrapeTime)} utc
+                    </span>
+                  ) : (
+                    "demo fund data"
+                  )}
                 </p>
                 {showSinceLastVisit && summary.lastVisit && (
                   <p className="lower mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 font-mono text-xs">
@@ -545,7 +576,7 @@ function PortfolioContent() {
 
                 <div className="mt-8 border-t border-border pt-10">
                   <p className="lower font-mono text-xs text-muted-foreground">
-                    by {end.year}, on current trends, you could have
+                    by {end.year}, growing at your funds&apos; 5-year averages, you could have
                   </p>
                   <p className="tabular mt-3 font-heading text-[12vw] leading-none tracking-tight text-primary md:text-[5.5vw]">
                     {formatEuro(end.expected)}
@@ -553,6 +584,14 @@ function PortfolioContent() {
                   <p className="tabular lower mt-4 font-mono text-xs text-muted-foreground">
                     somewhere between {formatEuro(end.cautious)} and {formatEuro(end.optimistic)} ·{" "}
                     {moneyLabel}
+                  </p>
+                  <p className="tabular lower mt-2 font-mono text-xs text-muted-foreground">
+                    your funds&apos; 5-year average, weighted by what&apos;s in each:{" "}
+                    <span className="text-foreground">
+                      {blendedGrowth >= 0 ? "+" : ""}
+                      {blendedGrowth.toFixed(1)}% a year
+                    </span>{" "}
+                    after charges
                   </p>
                 </div>
 
@@ -590,22 +629,20 @@ function PortfolioContent() {
                   <PortfolioChart points={projection.points} />
                 </div>
 
-                {/* The assumptions, out in the open */}
-                <details className="group mt-10 border-t border-border pt-6">
-                  <summary className="lower flex cursor-pointer list-none items-center justify-between font-mono text-xs text-muted-foreground hover:text-foreground">
-                    how this is projected
-                    <span className="transition-transform group-open:rotate-45" aria-hidden>
-                      +
-                    </span>
-                  </summary>
-                  <div className="mt-6 overflow-x-auto">
-                    <table className="w-full min-w-[34rem] text-left">
+                {/* What each fund is projected at, always on show */}
+                <div className="mt-10 border-t border-border pt-6">
+                  <p className="lower font-mono text-xs text-muted-foreground">
+                    how each fund is projected
+                    {lastScrapeTime && <> · returns as of {formatLastUpdated(lastScrapeTime)} utc</>}
+                  </p>
+                  <div className="mt-5 overflow-x-auto">
+                    <table className="w-full min-w-[36rem] text-left">
                       <thead>
                         <tr className="lower font-mono text-xs text-muted-foreground">
                           <th className="pb-3 font-normal">fund</th>
-                          <th className="pb-3 font-normal">trend</th>
-                          <th className="pb-3 text-right font-normal">expected / yr</th>
-                          <th className="pb-3 text-right font-normal">range / yr</th>
+                          <th className="pb-3 text-right font-normal">5-year average / yr</th>
+                          <th className="pb-3 text-right font-normal">after charge</th>
+                          <th className="pb-3 text-right font-normal">cautious – optimistic</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -614,9 +651,22 @@ function PortfolioContent() {
                           return (
                             <tr key={holding.id} className="border-t border-border text-sm">
                               <td className="lower py-3 pr-4">{holding.label ?? fund.name}</td>
-                              <td className="tabular lower py-3 pr-4 font-mono text-xs text-muted-foreground">
-                                {a.basis} {a.trendPct >= 0 ? "+" : ""}
-                                {a.trendPct.toFixed(1)}%{a.capped && " (capped)"}
+                              <td className="tabular py-3 text-right">
+                                {a.basis === "none" ? (
+                                  <span className="lower font-mono text-xs text-muted-foreground">
+                                    no history
+                                  </span>
+                                ) : (
+                                  <>
+                                    {a.averagePct >= 0 ? "+" : ""}
+                                    {a.averagePct.toFixed(1)}%
+                                    {a.basis !== "5yr" && (
+                                      <span className="lower ml-1.5 font-mono text-xs text-warning">
+                                        ({a.basis === "3yr" ? "3" : "1"}-yr — fund under 5 years old)
+                                      </span>
+                                    )}
+                                  </>
+                                )}
                               </td>
                               <td className="tabular py-3 text-right">
                                 {a.expectedPct >= 0 ? "+" : ""}
@@ -633,13 +683,13 @@ function PortfolioContent() {
                   </div>
                   <ul className="lower mt-6 space-y-2 font-mono text-xs leading-relaxed text-muted-foreground">
                     <li>
-                      ▸ each fund grows at its long-run annualised return — 10yr where published,
-                      otherwise 5yr — not last year&apos;s, which is too noisy to compound for
-                      decades.
+                      ▸ each fund grows at its average yearly return over the last 5 years — long
+                      enough to include good and bad markets. last year alone is too noisy to compound
+                      for decades.
                     </li>
                     <li>
-                      ▸ trends are held between {"−2%"} and +{TREND_CAP_PCT}% a year, then the fund&apos;s
-                      annual charge is taken off.
+                      ▸ a fund under 5 years old uses its longest history instead, and is marked.
+                      the fund&apos;s annual charge is taken off.
                     </li>
                     <li>
                       ▸ the range is ±{RISK_SPREAD_PER_POINT}% a year per point of risk rating: wider
@@ -654,7 +704,7 @@ function PortfolioContent() {
                       doesn&apos;t guarantee future returns.
                     </li>
                   </ul>
-                </details>
+                </div>
               </div>
 
               {/* ── Holdings ──────────────────────────────────────────── */}

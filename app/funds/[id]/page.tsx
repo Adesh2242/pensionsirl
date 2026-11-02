@@ -12,8 +12,13 @@ import { AssetClassBadge } from "@/components/funds/asset-class-badge";
 import { ReturnValue } from "@/components/funds/return-value";
 import { getAllFunds, getFundBySlug, getLastScrapeTime } from "@/lib/data/funds.server";
 import { formatAmc, formatLastUpdated } from "@/lib/utils";
+import { returnFor } from "@/lib/fund-returns";
 
 type Params = Promise<{ id: string }>;
+
+// Rebuilt at most hourly, so a Monday scrape reaches these pages the same
+// morning instead of waiting for the next deploy.
+export const revalidate = 3600;
 
 export async function generateStaticParams() {
   const funds = await getAllFunds();
@@ -35,19 +40,17 @@ export default async function FundDetailPage({ params }: { params: Params }) {
   const fund = await getFundBySlug(id);
   if (!fund) notFound();
 
-  // tenYearReturn is only ever set by the live scraper (mock data never sets
-  // it), so its presence is a reliable signal for which disclaimer to show.
-  const isLiveData = fund.tenYearReturn !== undefined;
+  const isLiveData = fund.live === true;
   const lastScrapeTime = isLiveData ? await getLastScrapeTime() : null;
 
+  // Every figure is an average yearly return; periods the fund is too young
+  // for are left out rather than shown as 0%.
   const returns = [
-    { label: "1 year", value: fund.oneYearReturn },
-    { label: "3 years (ann.)", value: fund.threeYearReturn },
-    { label: "5 years (ann.)", value: fund.fiveYearReturn },
-    ...(fund.tenYearReturn !== undefined
-      ? [{ label: "10 years (ann.)", value: fund.tenYearReturn }]
-      : []),
-  ];
+    { label: "1 year", value: returnFor(fund, "1y") },
+    { label: "3 years, avg / yr", value: returnFor(fund, "3y") },
+    { label: "5 years, avg / yr", value: returnFor(fund, "5y") },
+    { label: "10 years, avg / yr", value: fund.tenYearReturn ?? null },
+  ].filter((r): r is { label: string; value: number } => r.value !== null);
 
   // Bars are scaled against the largest absolute return on this fund, so the
   // periods stay comparable to each other without implying a market-wide scale.
@@ -63,7 +66,16 @@ export default async function FundDetailPage({ params }: { params: Params }) {
   return (
     <>
       <Field className="inset-frame flex flex-col justify-end" tone="slate">
-        <HeroCorners left={fund.providerName} right={isLiveData ? "live data" : "demo data"} />
+        <HeroCorners
+          left={fund.providerName}
+          right={
+            isLiveData
+              ? lastScrapeTime
+                ? `fund data updated ${formatLastUpdated(lastScrapeTime)} utc`
+                : "live data"
+              : "demo data"
+          }
+        />
         <div className="px-6 pb-12 pt-36 md:px-10 md:pb-16 md:pt-44">
           <SectionLabel>fund</SectionLabel>
           <Ragged
@@ -118,7 +130,7 @@ export default async function FundDetailPage({ params }: { params: Params }) {
             <Reveal delay={180} className="border-border py-8 md:border-l md:px-8">
               <p className="lower font-mono text-xs text-muted-foreground">1 year return</p>
               <ReturnValue
-                value={fund.oneYearReturn}
+                value={returnFor(fund, "1y")}
                 className="mt-4 font-heading text-5xl tracking-tight md:text-6xl"
               />
               <p className="lower mt-3 text-sm text-muted-foreground">

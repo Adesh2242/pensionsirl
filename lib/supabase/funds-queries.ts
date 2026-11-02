@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { AssetClass, Fund, Provider, SfdrArticle } from "@/lib/types";
+import type { AssetClass, Fund, Provider, ReturnPeriod, SfdrArticle } from "@/lib/types";
+import { annualise } from "@/lib/fund-returns";
 import { providers as researchedProviders } from "@/lib/mock-data";
 
 interface FundRow {
@@ -28,20 +29,6 @@ interface FundRowWithId extends FundRow {
   id: string;
 }
 
-/**
- * Fallback only: scripts/scrape-funds.ts now writes a real 3yr return for
- * every fund, sourced directly from the scrape source. This just covers rows
- * written before that (or any future fund missing one) so existing UI
- * (compare table, fund detail page, calculator) doesn't need a separate
- * "no data" state — treat the result as an estimate, not an observed figure.
- */
-function interpolateThreeYear(oneYear: number | null, fiveYear: number | null): number {
-  if (oneYear === null && fiveYear === null) return 0;
-  if (oneYear === null) return fiveYear!;
-  if (fiveYear === null) return oneYear;
-  return oneYear + (fiveYear - oneYear) * 0.5;
-}
-
 function providerName(providers: FundRow["providers"], fallback: string): string {
   if (!providers) return fallback;
   return Array.isArray(providers) ? (providers[0]?.name ?? fallback) : providers.name;
@@ -61,13 +48,34 @@ function mapFund(row: FundRowWithId, price: PriceRow | undefined): Fund {
     sfdrArticle: (row.sfdr_article as SfdrArticle | null) ?? undefined,
     manager: row.manager ?? undefined,
     description: row.description ?? "",
-    oneYearReturn: price?.one_year_return ?? 0,
-    threeYearReturn: price?.three_year_return ?? interpolateThreeYear(
-      price?.one_year_return ?? null,
-      price?.five_year_return ?? null,
-    ),
-    fiveYearReturn: price?.five_year_return ?? 0,
-    tenYearReturn: price?.ten_year_return ?? undefined,
+    ...liveReturns(price),
+    live: true,
+  };
+}
+
+/**
+ * The source publishes 1 year as a yearly figure but 3, 5 and 10 years as
+ * cumulative totals (its 10-year figures average +89% — a decade's growth,
+ * not a year's). Everything downstream reads returns as average yearly
+ * percentages, so the multi-year totals are annualised here, once. A period
+ * the fund is too young for is recorded in missingReturns rather than shown
+ * as a made-up 0%.
+ */
+function liveReturns(price: PriceRow | undefined) {
+  const missingReturns: ReturnPeriod[] = [];
+  const one = price?.one_year_return ?? null;
+  const three = price?.three_year_return ?? null;
+  const five = price?.five_year_return ?? null;
+  const ten = price?.ten_year_return ?? null;
+  if (one === null) missingReturns.push("1y");
+  if (three === null) missingReturns.push("3y");
+  if (five === null) missingReturns.push("5y");
+  return {
+    oneYearReturn: one ?? 0,
+    threeYearReturn: three === null ? 0 : annualise(three, 3),
+    fiveYearReturn: five === null ? 0 : annualise(five, 5),
+    tenYearReturn: ten === null ? undefined : annualise(ten, 10),
+    missingReturns,
   };
 }
 

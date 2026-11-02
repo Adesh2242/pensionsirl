@@ -19,6 +19,7 @@ import { ReturnValue } from "@/components/funds/return-value";
 import { useFunds } from "@/lib/hooks/use-funds";
 import { formatAmc } from "@/lib/utils";
 import type { Fund } from "@/lib/types";
+import { returnFor } from "@/lib/fund-returns";
 
 const MAX_COMPARE = 4;
 
@@ -68,18 +69,18 @@ const rows: Row[] = [
   },
   {
     label: "1yr return",
-    render: (f) => <ReturnValue value={f.oneYearReturn} className="font-heading text-lg" />,
-    best: { value: (f) => f.oneYearReturn, direction: "higher" },
+    render: (f) => <ReturnValue value={returnFor(f, "1y")} className="font-heading text-lg" />,
+    best: { value: (f) => returnFor(f, "1y") ?? undefined, direction: "higher" },
   },
   {
-    label: "3yr return (ann.)",
-    render: (f) => <ReturnValue value={f.threeYearReturn} className="font-heading text-lg" />,
-    best: { value: (f) => f.threeYearReturn, direction: "higher" },
+    label: "3yr average / yr",
+    render: (f) => <ReturnValue value={returnFor(f, "3y")} className="font-heading text-lg" />,
+    best: { value: (f) => returnFor(f, "3y") ?? undefined, direction: "higher" },
   },
   {
-    label: "5yr return (ann.)",
-    render: (f) => <ReturnValue value={f.fiveYearReturn} className="font-heading text-lg" />,
-    best: { value: (f) => f.fiveYearReturn, direction: "higher" },
+    label: "5yr average / yr",
+    render: (f) => <ReturnValue value={returnFor(f, "5y")} className="font-heading text-lg" />,
+    best: { value: (f) => returnFor(f, "5y") ?? undefined, direction: "higher" },
   },
   { label: "manager", render: (f) => <span className="lower">{f.manager ?? "—"}</span> },
 ];
