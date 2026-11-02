@@ -5,22 +5,22 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 
+// Portfolio leads: it's the heart of the site. It's listed for everyone —
+// logged out, it takes you to log in and then straight back to it.
 const primaryLinks = [
+  { href: "/portfolio", label: "my portfolio", featured: true },
   { href: "/funds", label: "funds" },
   { href: "/compare", label: "compare" },
-  { href: "/calculator", label: "calculator" },
 ] as const;
 
-// Portfolio is listed for everyone: logged out, it takes you to log in and
-// then straight back to it.
 const secondaryLinks = [
+  { href: "/calculator", label: "calculator" },
   { href: "/ai-suggestions", label: "ai" },
-  { href: "/portfolio", label: "portfolio" },
 ] as const;
 
 const allLinks = [
-  { href: "/", label: "home" },
   { href: "/portfolio", label: "my portfolio" },
+  { href: "/", label: "home" },
   { href: "/funds", label: "funds" },
   { href: "/compare", label: "compare" },
   { href: "/calculator", label: "calculator" },
@@ -86,9 +86,16 @@ export function Navbar() {
                   href={link.href}
                   data-active={isActive(link.href) ? "true" : undefined}
                   className={`lower link-underline text-xs transition-colors hover:text-foreground ${
-                    isActive(link.href) ? "text-foreground" : "text-muted-foreground"
+                    "featured" in link
+                      ? "inline-flex items-center gap-1.5 text-primary"
+                      : isActive(link.href)
+                        ? "text-foreground"
+                        : "text-muted-foreground"
                   }`}
                 >
+                  {"featured" in link && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
+                  )}
                   {link.label}
                 </Link>
               ))}
@@ -153,7 +160,7 @@ export function Navbar() {
                   href={link.href}
                   onClick={() => setOpen(false)}
                   tabIndex={open ? 0 : -1}
-                  className="lower block font-heading text-4xl tracking-tight text-muted-foreground transition-all duration-500 hover:translate-x-3 hover:text-foreground md:text-6xl"
+                  className={`lower block font-heading text-4xl tracking-tight ${i === 0 ? "text-primary" : "text-muted-foreground"} transition-all duration-500 hover:translate-x-3 hover:text-foreground md:text-6xl`}
                   style={{
                     transitionDelay: open ? `${i * 45}ms` : "0ms",
                     opacity: open ? 1 : 0,

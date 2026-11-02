@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { HOME_AFTER_SIGN_IN } from "@/lib/safe-next";
 
 function GoogleLogo() {
   return (
@@ -26,7 +27,7 @@ function GoogleLogo() {
   );
 }
 
-export function GoogleSignInButton({ next = "/" }: { next?: string }) {
+export function GoogleSignInButton({ next = HOME_AFTER_SIGN_IN }: { next?: string }) {
   const [loading, setLoading] = useState(false);
   const configured = isSupabaseConfigured();
 

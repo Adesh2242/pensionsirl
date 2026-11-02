@@ -8,7 +8,7 @@ import { FormField } from "@/components/auth/form-field";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { describeAuthError } from "@/lib/auth-errors";
-import { safeNextPath } from "@/lib/safe-next";
+import { HOME_AFTER_SIGN_IN, safeNextPath } from "@/lib/safe-next";
 
 function SignupForm() {
   const router = useRouter();
@@ -85,7 +85,7 @@ function SignupForm() {
         <>
           already have an account?{" "}
           <Link
-            href={next === "/" ? "/login" : `/login?next=${encodeURIComponent(next)}`}
+            href={next === HOME_AFTER_SIGN_IN ? "/login" : `/login?next=${encodeURIComponent(next)}`}
             className="link-underline text-foreground"
           >
             log in
