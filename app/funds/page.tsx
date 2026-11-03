@@ -19,6 +19,7 @@ import { useFunds } from "@/lib/hooks/use-funds";
 import { formatLastUpdated } from "@/lib/utils";
 import type { AssetClass } from "@/lib/types";
 import { returnFor } from "@/lib/fund-returns";
+import { Disclaimer } from "@/components/legal/disclaimer";
 
 const PAGE_SIZE = 24;
 
@@ -269,6 +270,11 @@ function FundsExplorer() {
               </>
             )}
           </div>
+        </div>
+      </section>
+      <section className="px-6 pb-16 md:px-10">
+        <div className="container-page max-w-3xl px-0 md:px-0">
+          <Disclaimer kind="returns" />
         </div>
       </section>
     </>

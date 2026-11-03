@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { readConsent, writeConsent } from "@/lib/consent";
+import { OPEN_COOKIE_SETTINGS_EVENT, readConsent, writeConsent } from "@/lib/consent";
 
 export function CookieBanner() {
   const [visible, setVisible] = useState(false);
@@ -23,6 +23,16 @@ export function CookieBanner() {
     // mount — deliberately deferred, not a synchronization-from-props effect.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setVisible(readConsent() === null);
+  }, []);
+
+  // Footer and settings can reopen the preferences at any time.
+  useEffect(() => {
+    function reopen() {
+      setAnalytics(readConsent()?.analytics ?? false);
+      setManageOpen(true);
+    }
+    window.addEventListener(OPEN_COOKIE_SETTINGS_EVENT, reopen);
+    return () => window.removeEventListener(OPEN_COOKIE_SETTINGS_EVENT, reopen);
   }, []);
 
   function acceptAll() {
@@ -41,15 +51,15 @@ export function CookieBanner() {
     setVisible(false);
   }
 
-  if (!visible) return null;
-
   return (
     <>
+      {visible && (
       <div className="animate-fade-up fixed inset-x-3 bottom-3 z-50">
         <div className="pill flex flex-col gap-4 rounded-[var(--radius)] px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="lower max-w-2xl font-mono text-xs leading-relaxed text-muted-foreground">
-            essential cookies run pensioniq; analytics cookies are optional. no advertising or
-            tracking pixels. see our{" "}
+            pensioniq only uses essential storage — your login and your choices. there is no
+            advertising, no tracking and no analytics; if we ever add analytics it stays off
+            unless you allow it here. see our{" "}
             <a href="/privacy" className="link-underline text-foreground">
               privacy policy
             </a>
@@ -74,14 +84,17 @@ export function CookieBanner() {
           </div>
         </div>
       </div>
+      )}
 
       <Dialog open={manageOpen} onOpenChange={setManageOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Manage cookie preferences</DialogTitle>
             <DialogDescription>
-              Necessary cookies keep the app working and can&apos;t be disabled. Analytics
-              cookies are optional.
+              Necessary storage keeps you logged in and remembers this choice; it can&apos;t be
+              turned off. Analytics is optional and off unless you allow it — and PensionIQ
+              doesn&apos;t run any analytics today. You can change this at any time from the
+              footer or Settings.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -98,7 +111,7 @@ export function CookieBanner() {
               <div>
                 <p className="lower text-sm">analytics</p>
                 <p className="lower mt-1 font-mono text-xs text-muted-foreground">
-                  helps us understand which pages are useful
+                  not used today — would help us see which pages are useful
                 </p>
               </div>
               <Switch checked={analytics} onCheckedChange={setAnalytics} />

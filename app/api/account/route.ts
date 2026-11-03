@@ -5,7 +5,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export const dynamic = "force-dynamic";
 
 /**
- * Permanently deletes the authenticated user's Supabase Auth account.
+ * Permanently deletes the authenticated user's Supabase Auth account and
+ * everything tied to it (GDPR Art. 17).
  * Requires SUPABASE_SERVICE_ROLE_KEY — Supabase only allows user deletion
  * via its admin API, which can't be done with the public anon key.
  */
@@ -33,6 +34,14 @@ export async function DELETE() {
       },
       { status: 501 },
     );
+  }
+
+  // Consent records would otherwise only lose their user link (on delete set
+  // null). Erasure means erasure: remove them outright. Holdings, profile and
+  // saved funds go with the auth user via on delete cascade.
+  const { error: consentError } = await admin.from("consent_log").delete().eq("user_id", user.id);
+  if (consentError) {
+    return NextResponse.json({ error: consentError.message }, { status: 500 });
   }
 
   const { error: deleteError } = await admin.auth.admin.deleteUser(user.id);

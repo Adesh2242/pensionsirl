@@ -13,6 +13,7 @@ import { ReturnValue } from "@/components/funds/return-value";
 import { getAllFunds, getFundBySlug, getLastScrapeTime } from "@/lib/data/funds.server";
 import { formatAmc, formatLastUpdated } from "@/lib/utils";
 import { returnFor } from "@/lib/fund-returns";
+import { Disclaimer } from "@/components/legal/disclaimer";
 
 type Params = Promise<{ id: string }>;
 
@@ -218,6 +219,11 @@ export default async function FundDetailPage({ params }: { params: Params }) {
               back to all funds
             </Link>
           </div>
+        </div>
+      </section>
+      <section className="px-6 py-16 md:px-10">
+        <div className="container-page max-w-3xl px-0 md:px-0">
+          <Disclaimer kind="returns" />
         </div>
       </section>
     </>

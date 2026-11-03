@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/layout/navbar";
 import { FundDataUpdated } from "@/components/layout/fund-data-updated";
+import { CookieSettingsLink } from "@/components/layout/cookie-settings-link";
 
 const tools = [
   { href: "/portfolio", label: "my portfolio" },
@@ -13,6 +14,7 @@ const tools = [
 const about = [
   { href: "/how-it-works", label: "how it works" },
   { href: "/privacy", label: "privacy policy" },
+  { href: "/terms", label: "terms & disclaimer" },
   { href: "/settings", label: "your data" },
 ] as const;
 
@@ -66,6 +68,9 @@ export function Footer() {
                 </Link>
               </li>
             ))}
+            <li>
+              <CookieSettingsLink className="lower link-underline text-sm text-muted-foreground transition-colors hover:text-foreground" />
+            </li>
           </ul>
         </div>
 
@@ -93,7 +98,10 @@ export function Footer() {
           <p>
             © {new Date().getFullYear()} pensioniq · <FundDataUpdated />
           </p>
-          <p>not regulated financial advice · sourced from public provider fund centres</p>
+          <p>
+            information only — not regulated financial advice. past performance is not a reliable
+            guide to future performance.
+          </p>
         </div>
       </div>
     </footer>

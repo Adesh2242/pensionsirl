@@ -20,6 +20,7 @@ import { useFunds } from "@/lib/hooks/use-funds";
 import { formatAmc } from "@/lib/utils";
 import type { Fund } from "@/lib/types";
 import { returnFor } from "@/lib/fund-returns";
+import { Disclaimer } from "@/components/legal/disclaimer";
 
 const MAX_COMPARE = 4;
 
@@ -245,6 +246,7 @@ function ComparePage() {
                 the funds shown — not a recommendation, and not advice. lower risk isn&apos;t
                 automatically better over a long horizon.
               </p>
+              <Disclaimer kind="returns" className="mt-8 max-w-3xl" />
             </>
           )}
 
