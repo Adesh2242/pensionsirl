@@ -21,7 +21,7 @@ import { formatEuro } from "@/lib/utils";
 import { csvFileName, downloadCsv } from "@/lib/csv";
 import { calculatorCsvRows } from "@/lib/calculator-export";
 import { Disclaimer } from "@/components/legal/disclaimer";
-import { DownloadCsvButton } from "@/components/legal/download-csv-button";
+import { ExportButtons } from "@/components/legal/export-buttons";
 import type { CalculatorInput } from "@/lib/types";
 
 function firstOf(value: number | readonly number[]): number {
@@ -293,6 +293,13 @@ export default function CalculatorPage() {
               ))}
             </div>
 
+            <a
+              href="#export"
+              className="lower link-underline mt-5 inline-block font-mono text-xs text-muted-foreground hover:text-foreground"
+            >
+              download these figures as a pdf report or csv ↓
+            </a>
+
             <div className="mt-16">
               <SectionLabel>pot growth vs contributions</SectionLabel>
               <div className="mt-8 border-t border-border pt-8">
@@ -341,16 +348,21 @@ export default function CalculatorPage() {
               </p>
             </div>
 
-            <div className="mt-16 border-t border-border pt-8">
+            <div id="export" className="mt-16 scroll-mt-28 border-t border-border pt-8">
               <div className="flex flex-wrap items-start justify-between gap-6">
                 <div>
-                  <p className="lower font-mono text-xs text-muted-foreground">your numbers, as a spreadsheet</p>
+                  <p className="lower font-mono text-xs text-muted-foreground">take it with you</p>
                   <p className="lower mt-2 max-w-md text-sm text-muted-foreground">
-                    your inputs, the results and the pot year by year to {input.retirementAge}.
+                    a pdf report with the chart — your inputs, the results, tax relief and the pot
+                    year by year to {input.retirementAge} — or the same numbers as a csv spreadsheet.
                   </p>
                 </div>
-                <DownloadCsvButton
-                  onDownload={() =>
+                <ExportButtons
+                  onPdf={async () => {
+                    const { downloadCalculatorReport } = await import("@/lib/pdf/calculator-report");
+                    downloadCalculatorReport(input, result);
+                  }}
+                  onCsv={() =>
                     downloadCsv(csvFileName("calculator"), calculatorCsvRows(input, result))
                   }
                 />
