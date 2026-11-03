@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -52,4 +53,30 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ logged: true });
+}
+
+/**
+ * The signed-in user's own consent records, for "export my data" (GDPR
+ * Art. 15). consent_log has no select policy, so this reads with the service
+ * role, strictly filtered to the caller's own user id.
+ */
+export async function GET() {
+  const supabase = await createClient();
+  if (!supabase) return NextResponse.json({ records: [] });
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+
+  const admin = createAdminClient();
+  if (!admin) return NextResponse.json({ records: [] });
+
+  const { data, error } = await admin
+    .from("consent_log")
+    .select("necessary, analytics, decided_at")
+    .eq("user_id", user.id)
+    .order("decided_at", { ascending: true });
+  if (error) return NextResponse.json({ records: [], error: error.message });
+  return NextResponse.json({ records: data ?? [] });
 }

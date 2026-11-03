@@ -135,6 +135,18 @@ function SignupForm() {
           {loading ? "creating account…" : "create account"}
           <span aria-hidden>↗</span>
         </button>
+        <p className="lower font-mono text-[0.7rem] leading-relaxed text-muted-foreground">
+          by creating an account you confirm you&apos;re 16 or over and agree to our{" "}
+          <Link href="/terms" className="link-underline text-foreground">
+            terms
+          </Link>
+          . we store your name, email and the pensions you add — in the eu (ireland), never sold,
+          deletable any time from settings. see the{" "}
+          <Link href="/privacy" className="link-underline text-foreground">
+            privacy policy
+          </Link>
+          .
+        </p>
       </form>
     </AuthShell>
   );

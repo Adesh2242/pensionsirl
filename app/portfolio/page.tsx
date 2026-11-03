@@ -37,6 +37,10 @@ import {
 } from "@/lib/portfolio/projection";
 import { formatEuro, formatLastUpdated } from "@/lib/utils";
 import { loginHref } from "@/lib/safe-next";
+import { csvFileName, downloadCsv } from "@/lib/csv";
+import { portfolioCsvRows } from "@/lib/portfolio/export";
+import { Disclaimer } from "@/components/legal/disclaimer";
+import { DownloadCsvButton } from "@/components/legal/download-csv-button";
 import type { AssetClass, Fund, HoldingInput, TrackedFund } from "@/lib/types";
 
 const HORIZONS = [10, 20, 30] as const;
@@ -887,6 +891,28 @@ function PortfolioContent() {
                 amcAssumed={summary.amcAssumed}
                 onEdit={openUpdate}
               />
+
+              {/* ── Export + warnings ─────────────────────────────────── */}
+              <div className="mt-24 border-t border-border pt-8">
+                <div className="flex flex-wrap items-start justify-between gap-6">
+                  <div>
+                    <p className="lower font-mono text-xs text-muted-foreground">your numbers, as a spreadsheet</p>
+                    <p className="lower mt-2 max-w-md text-sm text-muted-foreground">
+                      holdings, charges, the {horizon}-year projection ({moneyLabel}) and the
+                      cost of charges — with these warnings included.
+                    </p>
+                  </div>
+                  <DownloadCsvButton
+                    onDownload={() =>
+                      downloadCsv(
+                        csvFileName("portfolio", now),
+                        portfolioCsvRows({ positions, summary, projection, horizon, real, now, lastScrapeTime }),
+                      )
+                    }
+                  />
+                </div>
+                <Disclaimer kind="projection" className="mt-8 max-w-3xl" />
+              </div>
 
               {/* ── Holdings ──────────────────────────────────────────── */}
               <div className="mt-24">

@@ -296,5 +296,26 @@ export async function runScrape({
   log?: Log;
 }) {
   const funds = await scrapeAllProviders(log);
-  return writeScrapeToSupabase(createClient(supabaseUrl, serviceRoleKey), funds, log);
+  const client: SupabaseClient = createClient(supabaseUrl, serviceRoleKey);
+  const result = await writeScrapeToSupabase(client, funds, log);
+  await applyRetention(client, log);
+  return result;
+}
+
+/** How long anonymous cookie-consent records are kept, as the privacy policy says. */
+export const CONSENT_RETENTION_MONTHS = 24;
+
+/**
+ * Deletes consent records older than CONSENT_RETENTION_MONTHS. Runs with the
+ * weekly scrape; a failure is logged, never fatal to the scrape.
+ */
+async function applyRetention(client: SupabaseClient, log: Log) {
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - CONSENT_RETENTION_MONTHS);
+  const { error, count } = await client
+    .from("consent_log")
+    .delete({ count: "exact" })
+    .lt("decided_at", cutoff.toISOString());
+  if (error) log(`retention: couldn't prune consent_log — ${error.message}`);
+  else log(`retention: removed ${count ?? 0} consent records older than ${CONSENT_RETENTION_MONTHS} months.`);
 }

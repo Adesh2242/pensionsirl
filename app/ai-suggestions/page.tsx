@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChatInterface } from "@/components/ai/chat-interface";
 import { PageIntro } from "@/components/editorial/page-intro";
+import { Disclaimer } from "@/components/legal/disclaimer";
 
 export const metadata = {
   title: "AI Suggestions",
@@ -28,6 +29,7 @@ export default function AiSuggestionsPage() {
             .
           </p>
           <ChatInterface />
+          <Disclaimer kind="ai" className="mt-12" />
         </div>
       </section>
     </>

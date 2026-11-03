@@ -18,6 +18,10 @@ import { SectionLabel } from "@/components/editorial/section-label";
 import { ProjectionChart } from "@/components/calculator/projection-chart";
 import { calculateProjection } from "@/lib/calculations";
 import { formatEuro } from "@/lib/utils";
+import { csvFileName, downloadCsv } from "@/lib/csv";
+import { calculatorCsvRows } from "@/lib/calculator-export";
+import { Disclaimer } from "@/components/legal/disclaimer";
+import { DownloadCsvButton } from "@/components/legal/download-csv-button";
 import type { CalculatorInput } from "@/lib/types";
 
 function firstOf(value: number | readonly number[]): number {
@@ -335,6 +339,23 @@ export default function CalculatorPage() {
                 </Link>
                 .
               </p>
+            </div>
+
+            <div className="mt-16 border-t border-border pt-8">
+              <div className="flex flex-wrap items-start justify-between gap-6">
+                <div>
+                  <p className="lower font-mono text-xs text-muted-foreground">your numbers, as a spreadsheet</p>
+                  <p className="lower mt-2 max-w-md text-sm text-muted-foreground">
+                    your inputs, the results and the pot year by year to {input.retirementAge}.
+                  </p>
+                </div>
+                <DownloadCsvButton
+                  onDownload={() =>
+                    downloadCsv(csvFileName("calculator"), calculatorCsvRows(input, result))
+                  }
+                />
+              </div>
+              <Disclaimer kind="calculator" className="mt-8" />
             </div>
           </div>
         </div>

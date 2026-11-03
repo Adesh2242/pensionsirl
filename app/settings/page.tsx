@@ -16,7 +16,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth-context";
 import { createClient } from "@/lib/supabase/client";
-import { readConsent } from "@/lib/consent";
+import { CONSENT_CHANGED_EVENT, openCookieSettings, readConsent } from "@/lib/consent";
+import { csvFileName, downloadCsv, money } from "@/lib/csv";
 import { listTrackedFunds } from "@/lib/portfolio/store";
 import { loginHref } from "@/lib/safe-next";
 import { PageIntro } from "@/components/editorial/page-intro";
@@ -54,6 +55,13 @@ export default function SettingsPage() {
     setExportError(null);
     const consent = readConsent();
     let trackedFunds: Awaited<ReturnType<typeof listTrackedFunds>> = [];
+    // Server-side consent records (Art. 15 covers them too). Best effort.
+    const consentRecords = isMockMode
+      ? []
+      : await fetch("/api/consent")
+          .then((r) => (r.ok ? r.json() : { records: [] }))
+          .then((d: { records?: unknown[] }) => d.records ?? [])
+          .catch(() => []);
     try {
       const supabase = createClient();
       trackedFunds = await listTrackedFunds(supabase, user.id);
@@ -66,9 +74,12 @@ export default function SettingsPage() {
     }
     const payload = {
       exportedAt: new Date().toISOString(),
+      about:
+        "Everything PensionIQ holds about you: your account, your portfolio holdings (with any charges you entered), your cookie choice in this browser and the consent records stored on our server. Data is stored by Supabase in the EU (Ireland).",
       user,
       cookieConsent: consent,
-      trackedFunds,
+      consentRecords,
+      portfolioHoldings: trackedFunds,
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -78,6 +89,44 @@ export default function SettingsPage() {
     a.click();
     URL.revokeObjectURL(url);
     setExporting(false);
+  }
+
+  async function exportHoldingsCsv() {
+    if (!user) return;
+    setExportError(null);
+    try {
+      const holdings = await listTrackedFunds(createClient(), user.id);
+      downloadCsv(csvFileName("my-holdings"), [
+        ["PensionIQ - your portfolio holdings as stored", new Date().toISOString()],
+        [],
+        [
+          "Name",
+          "Fund",
+          "Statement value (EUR)",
+          "Statement date",
+          "You pay monthly (EUR)",
+          "Employer pays monthly (EUR)",
+          "Annual management charge (%)",
+          "Contribution charge (%)",
+          "Policy fee per year (EUR)",
+          "Tracking since",
+        ],
+        ...holdings.map((h) => [
+          h.label ?? "",
+          h.fundSlug,
+          money(h.startValue),
+          h.valueAsOf,
+          money(h.monthlyContribution),
+          money(h.employerContribution),
+          h.amcPct ?? "",
+          h.contributionChargePct ?? 0,
+          h.policyFee ?? 0,
+          h.startedAt,
+        ]),
+      ]);
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : "Couldn't export your holdings.");
+    }
   }
 
   async function deleteAccount() {
@@ -144,7 +193,9 @@ export default function SettingsPage() {
 
       <SectionLabel className="mt-16">your data (gdpr)</SectionLabel>
       <p className="lower mt-6 max-w-lg text-sm text-muted-foreground">
-        export everything we hold about you, or delete your account for good.
+        we hold your name, email, the pensions you add (values, contributions and charges) and
+        your cookie choices — stored in the eu (ireland), never sold or shared for marketing.
+        export all of it, correct holdings on the portfolio page, or delete your account for good.
       </p>
       <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-4 border-t border-border pt-6">
         <button
@@ -153,7 +204,14 @@ export default function SettingsPage() {
           className="lower pill inline-flex items-center gap-3 rounded-full px-6 py-3.5 text-sm transition-colors hover:text-primary disabled:opacity-50"
         >
           <Download className="h-4 w-4" aria-hidden />
-          {exporting ? "exporting…" : "export my data"}
+          {exporting ? "exporting…" : "export my data (json)"}
+        </button>
+        <button
+          onClick={exportHoldingsCsv}
+          className="lower link-underline inline-flex items-center gap-2 font-mono text-xs text-muted-foreground hover:text-foreground"
+        >
+          <Download className="h-3.5 w-3.5" aria-hidden />
+          holdings as csv
         </button>
         <button
           onClick={() => setConfirmOpen(true)}
@@ -165,12 +223,46 @@ export default function SettingsPage() {
         {exportError && <p className="lower font-mono text-xs text-destructive">{exportError}</p>}
       </div>
 
+      <SectionLabel className="mt-16">cookies</SectionLabel>
+      <p className="lower mt-6 max-w-lg text-sm text-muted-foreground">
+        your choice in this browser:{" "}
+        <span className="text-foreground">
+          <CookieChoice />
+        </span>
+        . you can change or withdraw it at any time.
+      </p>
+      <button
+        onClick={openCookieSettings}
+        className="lower link-underline mt-4 font-mono text-xs text-primary"
+      >
+        change cookie settings ↗
+      </button>
+
+      <p className="lower mt-16 max-w-lg border-t border-border pt-6 font-mono text-xs leading-relaxed text-muted-foreground">
+        deleting your account removes your profile, every portfolio holding and your consent
+        records straight away. questions, or want to complain? see{" "}
+        <a href="/privacy#rights" className="link-underline text-foreground">
+          your rights
+        </a>{" "}
+        — you can also contact the{" "}
+        <a
+          href="https://www.dataprotection.ie"
+          target="_blank"
+          rel="noreferrer"
+          className="link-underline text-foreground"
+        >
+          data protection commission
+        </a>
+        .
+      </p>
+
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete your account?</DialogTitle>
             <DialogDescription>
-              This permanently removes your account and cannot be undone. Type{" "}
+              This permanently removes your account, every portfolio holding and your consent
+              records, and cannot be undone. Export your data first if you want a copy. Type{" "}
               <strong>DELETE</strong> to confirm.
             </DialogDescription>
           </DialogHeader>
@@ -201,4 +293,23 @@ export default function SettingsPage() {
       </div>
     </>
   );
+}
+
+/** Reads the consent after mount (localStorage), so server and client render the same first. */
+function CookieChoice() {
+  const [label, setLabel] = useState("…");
+  useEffect(() => {
+    const read = () => {
+      const c = readConsent();
+      setLabel(!c ? "not chosen yet" : c.analytics ? "essential + analytics allowed" : "essential only");
+    };
+    read();
+    window.addEventListener("storage", read);
+    window.addEventListener(CONSENT_CHANGED_EVENT, read);
+    return () => {
+      window.removeEventListener("storage", read);
+      window.removeEventListener(CONSENT_CHANGED_EVENT, read);
+    };
+  }, []);
+  return <>{label}</>;
 }
