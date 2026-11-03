@@ -40,7 +40,7 @@ import { loginHref } from "@/lib/safe-next";
 import { csvFileName, downloadCsv } from "@/lib/csv";
 import { portfolioCsvRows } from "@/lib/portfolio/export";
 import { Disclaimer } from "@/components/legal/disclaimer";
-import { DownloadCsvButton } from "@/components/legal/download-csv-button";
+import { ExportButtons } from "@/components/legal/export-buttons";
 import type { AssetClass, Fund, HoldingInput, TrackedFund } from "@/lib/types";
 
 const HORIZONS = [10, 20, 30] as const;
@@ -593,13 +593,18 @@ function PortfolioContent() {
         lead="your pensions in one place — valued from your statements, kept current from each fund's returns, and projected forward on their long-run trend."
       >
         {positions.length > 0 && (
-          <button
-            onClick={openAdd}
-            disabled={!fundsReady}
-            className="lower pill mt-10 inline-flex items-center gap-3 rounded-full px-6 py-3.5 text-sm transition-colors hover:text-primary disabled:opacity-50"
-          >
-            add a holding <span aria-hidden>↗</span>
-          </button>
+          <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
+            <button
+              onClick={openAdd}
+              disabled={!fundsReady}
+              className="lower pill inline-flex items-center gap-3 rounded-full px-6 py-3.5 text-sm transition-colors hover:text-primary disabled:opacity-50"
+            >
+              add a holding <span aria-hidden>↗</span>
+            </button>
+            <a href="#export" className="lower link-underline font-mono text-xs text-muted-foreground hover:text-foreground">
+              download pdf report or csv ↓
+            </a>
+          </div>
         )}
       </PageIntro>
 
@@ -893,17 +898,31 @@ function PortfolioContent() {
               />
 
               {/* ── Export + warnings ─────────────────────────────────── */}
-              <div className="mt-24 border-t border-border pt-8">
+              <div id="export" className="mt-24 scroll-mt-28 border-t border-border pt-8">
                 <div className="flex flex-wrap items-start justify-between gap-6">
                   <div>
-                    <p className="lower font-mono text-xs text-muted-foreground">your numbers, as a spreadsheet</p>
+                    <p className="lower font-mono text-xs text-muted-foreground">take it with you</p>
                     <p className="lower mt-2 max-w-md text-sm text-muted-foreground">
-                      holdings, charges, the {horizon}-year projection ({moneyLabel}) and the
-                      cost of charges — with these warnings included.
+                      a pdf report with the charts — holdings, the {horizon}-year projection (
+                      {moneyLabel}), what charges cost and year-by-year figures — or the same numbers
+                      as a csv spreadsheet. both include these warnings.
                     </p>
                   </div>
-                  <DownloadCsvButton
-                    onDownload={() =>
+                  <ExportButtons
+                    onPdf={async () => {
+                      const { downloadPortfolioReport } = await import("@/lib/pdf/portfolio-report");
+                      downloadPortfolioReport({
+                        positions,
+                        summary,
+                        projection,
+                        horizon,
+                        real,
+                        now,
+                        lastScrapeTime,
+                        name: user.name,
+                      });
+                    }}
+                    onCsv={() =>
                       downloadCsv(
                         csvFileName("portfolio", now),
                         portfolioCsvRows({ positions, summary, projection, horizon, real, now, lastScrapeTime }),
