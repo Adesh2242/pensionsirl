@@ -102,7 +102,7 @@ export class Report {
       title: `PensionIQ ${meta.title}`,
       subject: meta.subtitle,
       author: "PensionIQ",
-      creator: "PensionIQ (pensioniq.netlify.app)",
+      creator: "PensionIQ",
       keywords: "pension, projection, ireland",
     });
     this.cover();

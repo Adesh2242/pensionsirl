@@ -11,7 +11,6 @@ import { HoldingDialog } from "@/components/portfolio/holding-dialog";
 import { PortfolioChart } from "@/components/portfolio/portfolio-chart";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth-context";
-import { createClient } from "@/lib/supabase/client";
 import { useFunds } from "@/lib/hooks/use-funds";
 import {
   addTrackedFund,
@@ -429,7 +428,7 @@ function EmptyState({ onAdd, disabled }: { onAdd: () => void; disabled: boolean 
 function PortfolioContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, loading: authLoading, isMockMode } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { funds, status: fundsStatus, lastScrapeTime } = useFunds();
   const [tracked, setTracked] = useState<TrackedFund[] | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -440,11 +439,10 @@ function PortfolioContent() {
   // Captured once per page load, so every figure on the page agrees on "now".
   const [now] = useState(() => new Date());
 
-  // useFunds() seeds with mock data before the live Supabase fetch resolves.
+  // useFunds() seeds with bundled data before the live catalogue arrives.
   // Holdings reference funds by slug (a foreign key to the funds table), and a
-  // mock slug may not exist in the live catalog, so adding waits for live
-  // data. In permanent mock mode mock slugs are the only ones that exist.
-  const fundsReady = isMockMode || fundsStatus === "live" || fundsStatus === "not-configured";
+  // bundled slug may not exist in the live catalogue, so adding waits for it.
+  const fundsReady = fundsStatus === "live";
 
   const prefillSlug = searchParams.get("add");
   const prefillFund =
@@ -459,7 +457,7 @@ function PortfolioContent() {
 
   useEffect(() => {
     if (!user) return;
-    listTrackedFunds(createClient(), user.id)
+    listTrackedFunds()
       .then(setTracked)
       .catch((err) =>
         setLoadError(err instanceof Error ? err.message : "Failed to load your portfolio."),
@@ -503,12 +501,11 @@ function PortfolioContent() {
 
   async function handleSave(input: HoldingInput) {
     if (!user) return;
-    const supabase = createClient();
     if (editing) {
-      const record = await updateTrackedFund(supabase, user.id, editing.id, input);
+      const record = await updateTrackedFund(editing.id, input);
       setTracked((prev) => (prev ?? []).map((t) => (t.id === record.id ? record : t)));
     } else {
-      const record = await addTrackedFund(supabase, user.id, input);
+      const record = await addTrackedFund(input);
       setTracked((prev) => [...(prev ?? []), record]);
       if (prefillSlug) router.replace("/portfolio");
     }
@@ -517,12 +514,12 @@ function PortfolioContent() {
   async function handleRemove(id: string) {
     if (!user) return;
     setTracked((prev) => (prev ?? []).filter((t) => t.id !== id));
-    await removeTrackedFund(createClient(), user.id, id).catch(() => {});
+    await removeTrackedFund(id).catch(() => {});
   }
 
   async function handleSeen() {
     if (!user) return;
-    const seenAt = await markPortfolioSeen(createClient(), user.id).catch(() => null);
+    const seenAt = await markPortfolioSeen().catch(() => null);
     if (seenAt) setTracked((prev) => (prev ?? []).map((t) => ({ ...t, lastSeenAt: seenAt })));
   }
 

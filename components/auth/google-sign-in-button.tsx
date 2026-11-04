@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { useAuth } from "@/lib/auth-context";
 import { HOME_AFTER_SIGN_IN } from "@/lib/safe-next";
 
 function GoogleLogo() {
@@ -27,33 +27,31 @@ function GoogleLogo() {
   );
 }
 
-export function GoogleSignInButton({ next = HOME_AFTER_SIGN_IN }: { next?: string }) {
+export function GoogleSignInButton({
+  next = HOME_AFTER_SIGN_IN,
+  divider,
+}: {
+  next?: string;
+  /** Shown under the button, e.g. "or continue with email". */
+  divider?: string;
+}) {
   const [loading, setLoading] = useState(false);
-  const configured = isSupabaseConfigured();
+  const { googleEnabled } = useAuth();
 
-  async function handleClick() {
-    const supabase = createClient();
-    if ("isMock" in supabase) return;
-    setLoading(true);
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
-      },
-    });
-    // Browser navigates away to Google; no need to clear loading on success.
-  }
+  // Off until Google credentials are configured on the server.
+  if (!googleEnabled) return null;
 
   return (
-    <button
-      type="button"
-      className="lower flex w-full items-center justify-center gap-3 rounded-full border border-border px-6 py-3.5 text-sm transition-colors hover:border-foreground/30 hover:text-primary disabled:opacity-40"
-      disabled={!configured || loading}
-      title={configured ? undefined : "Available once Supabase is connected"}
-      onClick={handleClick}
+    <>
+    <a
+      href={`/api/auth/google?next=${encodeURIComponent(next)}`}
+      onClick={() => setLoading(true)}
+      className="lower flex w-full items-center justify-center gap-3 rounded-full border border-border px-6 py-3.5 text-sm transition-colors hover:border-foreground/30 hover:text-primary"
     >
       <GoogleLogo />
       {loading ? "redirecting…" : "continue with google"}
-    </button>
+    </a>
+    {divider && <p className="lower my-7 font-mono text-xs text-muted-foreground">{divider}</p>}
+    </>
   );
 }

@@ -6,19 +6,18 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { FormField } from "@/components/auth/form-field";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
-import { describeAuthError } from "@/lib/auth-errors";
+import { postAuth, useAuth } from "@/lib/auth-context";
 import { HOME_AFTER_SIGN_IN, safeNextPath } from "@/lib/safe-next";
 
 function SignupForm() {
   const router = useRouter();
   const next = safeNextPath(useSearchParams().get("next"));
+  const { refresh, accountsEnabled } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [confirmEmailSent, setConfirmEmailSent] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -28,48 +27,15 @@ function SignupForm() {
     }
     setLoading(true);
     setError(null);
-    const supabase = createClient();
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { name } },
-    });
-    setLoading(false);
-    if (error) {
-      setError(describeAuthError(error));
+    const problem = await postAuth("/api/auth/signup", { name, email, password });
+    if (problem) {
+      setLoading(false);
+      setError(problem);
       return;
     }
-    // Projects with email confirmation enabled (Supabase's default) return a
-    // user but no session until the confirmation link is clicked.
-    if (!data.session) {
-      setConfirmEmailSent(true);
-      return;
-    }
+    await refresh();
     router.push(next);
     router.refresh();
-  }
-
-  if (confirmEmailSent) {
-    return (
-      <AuthShell
-        label="almost there"
-        lines={["check your", "email."]}
-        description={
-          <>
-            we sent a confirmation link to{" "}
-            <span className="text-foreground">{email}</span>. click it to activate your account,
-            then log in.
-          </>
-        }
-      >
-        <Link
-          href="/login"
-          className="lower pill inline-flex w-full items-center justify-center gap-3 rounded-full px-6 py-3.5 text-sm transition-colors hover:text-primary"
-        >
-          go to log in <span aria-hidden>↗</span>
-        </Link>
-      </AuthShell>
-    );
   }
 
   return (
@@ -77,9 +43,9 @@ function SignupForm() {
       label="sign up"
       lines={["start", "tracking."]}
       description={
-        isSupabaseConfigured()
+        accountsEnabled
           ? "track funds, save comparisons and get monthly value estimates."
-          : "demo mode — accounts are stored in your browser only, nothing leaves this device."
+          : "accounts are unavailable right now — please try again shortly."
       }
       footer={
         <>
@@ -93,8 +59,7 @@ function SignupForm() {
         </>
       }
     >
-      <GoogleSignInButton next={next} />
-      <p className="lower my-7 font-mono text-xs text-muted-foreground">or sign up with email</p>
+      <GoogleSignInButton next={next} divider="or sign up with email" />
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <FormField
@@ -140,7 +105,7 @@ function SignupForm() {
           <Link href="/terms" className="link-underline text-foreground">
             terms
           </Link>
-          . we store your name, email and the pensions you add — in the eu (ireland), never sold,
+          . we store your name, email and the pensions you add — in the eu, never sold,
           deletable any time from settings. see the{" "}
           <Link href="/privacy" className="link-underline text-foreground">
             privacy policy

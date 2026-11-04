@@ -9,6 +9,8 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",
+    // Bundled job scripts (pnpm build:jobs).
+    "dist/**",
     "out/**",
     "build/**",
     "next-env.d.ts",

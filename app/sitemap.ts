@@ -2,6 +2,8 @@ import type { MetadataRoute } from "next";
 import { getAllFunds } from "@/lib/data/funds.server";
 import { SITE_URL as BASE_URL } from "@/lib/site";
 
+export const dynamic = "force-dynamic";
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const funds = await getAllFunds();
   const staticRoutes = [
