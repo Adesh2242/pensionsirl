@@ -18,9 +18,17 @@ export function isSameOrigin(request: Request): boolean {
   }
 }
 
-/** The client's IP as Railway's edge reports it. */
+/**
+ * The client's IP, for rate limiting. Railway's edge sets X-Real-IP itself,
+ * so a visitor can't choose it. The first X-Forwarded-For entry is whatever
+ * the client sent, so it's only a fallback, and then the last hop — the one
+ * the proxy in front of us appended — is used.
+ */
 export function clientIp(request: Request): string {
-  return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const real = request.headers.get("x-real-ip")?.trim();
+  if (real) return real;
+  const hops = request.headers.get("x-forwarded-for")?.split(",").map((h) => h.trim()).filter(Boolean);
+  return hops?.[hops.length - 1] || "unknown";
 }
 
 export function jsonError(message: string, status: number) {

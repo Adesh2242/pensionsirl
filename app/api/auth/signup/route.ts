@@ -4,6 +4,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { createSession } from "@/lib/auth/session";
 import { createUser, normaliseEmail } from "@/lib/auth/users";
 import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from "@/lib/auth/password";
+import { isPwnedPassword } from "@/lib/auth/pwned";
 import { clientIp, isSameOrigin, jsonError } from "@/lib/auth/request";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +25,11 @@ export async function POST(request: Request) {
   if (password.length < MIN_PASSWORD_LENGTH)
     return jsonError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`, 400);
   if (password.length > MAX_PASSWORD_LENGTH) return jsonError("That password is too long.", 400);
+  if (await isPwnedPassword(password))
+    return jsonError(
+      "That password has appeared in a known data breach, so it's easy for others to guess. Please choose a different one.",
+      400,
+    );
 
   const userId = await createUser({ email, name, password });
   if (!userId) return jsonError("An account with that email already exists. Try logging in.", 409);

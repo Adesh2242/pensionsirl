@@ -3,3 +3,7 @@ allowBuilds:
   esbuild: true
   sharp: false
   unrs-resolver: false
+
+# Security: patched transitive versions (pnpm audit).
+overrides:
+  source-map-js: ">=1.2.2"
