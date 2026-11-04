@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1.7
 #
 # One image for everything PensionIQ runs on Railway:
 #   web      node server.js              (Next.js standalone server)
@@ -20,8 +19,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # A flat node_modules: Next's standalone file tracing misses files behind
 # pnpm's default symlinked layout.
-RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --config.node-linker=hoisted
+RUN pnpm install --frozen-lockfile --config.node-linker=hoisted
 
 # ── build ──
 FROM base AS build
