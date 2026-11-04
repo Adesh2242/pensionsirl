@@ -5,8 +5,7 @@
 ## How it runs
 
 Live at **https://web-production-5c33b.up.railway.app**. Everything runs in containers
-on **Railway**, in its EU region (Amsterdam). The old pensioniq.netlify.app address
-only redirects there (`netlify.toml`).
+on **Railway**, in its EU region (Amsterdam).
 
 | Service | What it runs | Notes |
 |---|---|---|
