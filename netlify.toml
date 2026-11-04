@@ -1,0 +1,15 @@
+# PensionIQ runs on Railway now (see README.md). The old Netlify address only
+# forwards visitors there, keeping the path, so existing links keep working.
+# NETLIFY_NEXT_PLUGIN_SKIP=true is set on the Netlify site so it doesn't try
+# to build the Next.js app. Delete this file and netlify-redirect/ once the
+# Netlify site is removed.
+
+[build]
+  command = "echo 'Redirect-only site: PensionIQ runs on Railway.'"
+  publish = "netlify-redirect"
+
+[[redirects]]
+  from = "/*"
+  to = "https://web-production-5c33b.up.railway.app/:splat"
+  status = 301
+  force = true
