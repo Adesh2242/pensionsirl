@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAllFunds } from "@/lib/data/funds.server";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { clientIp } from "@/lib/auth/request";
 import { returnFor } from "@/lib/fund-returns";
 import type { Fund } from "@/lib/types";
 
@@ -175,7 +176,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Cross-origin requests are not allowed." }, { status: 403 });
   }
 
-  const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+  const ip = clientIp(request);
   const { success } = await checkRateLimit(`ai-suggest:${ip}`, RATE_LIMIT, RATE_WINDOW_SECONDS);
   if (!success) {
     return NextResponse.json(

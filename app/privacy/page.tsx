@@ -173,6 +173,11 @@ export default function PrivacyPage() {
               <li>Only our server talks to the database, and every request is checked against your session: each account can only read and change its own holdings.</li>
               <li>Sign-in cookies are HTTP-only and only work on this site; login attempts are rate-limited.</li>
               <li>Passwords are never stored in plain text, and session tokens are stored only as hashes.</li>
+              <li>
+                New passwords are checked against known data breaches (Have I Been Pwned). Only the
+                first five characters of a one-way hash of the password are sent — never the
+                password itself.
+              </li>
               <li>Database credentials and keys are kept as secrets in our hosting provider and never sent to browsers.</li>
             </ul>
           </Section>
