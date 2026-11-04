@@ -11,9 +11,9 @@ import { AnimatedText } from "@/components/editorial/animated-text";
 import { getAllFunds, getAllProviders, getLastScrapeTime } from "@/lib/data/funds.server";
 import { formatLastUpdated } from "@/lib/utils";
 
-// Rebuilt at most hourly, so a Monday scrape reaches the home page the same
-// morning instead of waiting for the next deploy.
-export const revalidate = 3600;
+// Rendered per request from the cached catalogue (lib/data/funds.server.ts),
+// so a Monday scrape shows within five minutes.
+export const dynamic = "force-dynamic";
 
 const portfolioPoints = [
   ["every pension you hold,", "in one place"],

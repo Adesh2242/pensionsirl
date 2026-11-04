@@ -15,7 +15,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth-context";
-import { createClient } from "@/lib/supabase/client";
 import { CONSENT_CHANGED_EVENT, openCookieSettings, readConsent } from "@/lib/consent";
 import { csvFileName, downloadCsv, money } from "@/lib/csv";
 import { listTrackedFunds } from "@/lib/portfolio/store";
@@ -26,7 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { user, loading, isMockMode, signOut } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -56,15 +55,12 @@ export default function SettingsPage() {
     const consent = readConsent();
     let trackedFunds: Awaited<ReturnType<typeof listTrackedFunds>> = [];
     // Server-side consent records (Art. 15 covers them too). Best effort.
-    const consentRecords = isMockMode
-      ? []
-      : await fetch("/api/consent")
+    const consentRecords = await fetch("/api/consent")
           .then((r) => (r.ok ? r.json() : { records: [] }))
           .then((d: { records?: unknown[] }) => d.records ?? [])
           .catch(() => []);
     try {
-      const supabase = createClient();
-      trackedFunds = await listTrackedFunds(supabase, user.id);
+      trackedFunds = await listTrackedFunds();
     } catch (err) {
       setExportError(
         err instanceof Error
@@ -75,7 +71,7 @@ export default function SettingsPage() {
     const payload = {
       exportedAt: new Date().toISOString(),
       about:
-        "Everything PensionIQ holds about you: your account, your portfolio holdings (with any charges you entered), your cookie choice in this browser and the consent records stored on our server. Data is stored by Supabase in the EU (Ireland).",
+        "Everything PensionIQ holds about you: your account, your portfolio holdings (with any charges you entered), your cookie choice in this browser and the consent records stored on our server. Data is stored on Railway in the EU (Amsterdam, Netherlands).",
       user,
       cookieConsent: consent,
       consentRecords,
@@ -95,7 +91,7 @@ export default function SettingsPage() {
     if (!user) return;
     setExportError(null);
     try {
-      const holdings = await listTrackedFunds(createClient(), user.id);
+      const holdings = await listTrackedFunds();
       downloadCsv(csvFileName("my-holdings"), [
         ["PensionIQ - your portfolio holdings as stored", new Date().toISOString()],
         [],
@@ -132,20 +128,15 @@ export default function SettingsPage() {
   async function deleteAccount() {
     setDeleting(true);
     setDeleteError(null);
-    const supabase = createClient();
-
-    if ("isMock" in supabase) {
-      await supabase.auth.deleteAccount();
-    } else {
-      const res = await fetch("/api/account", { method: "DELETE" });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setDeleteError(data.error ?? "Failed to delete account. Please try again.");
-        setDeleting(false);
-        return;
-      }
-      await supabase.auth.signOut();
+    const res = await fetch("/api/account", { method: "DELETE", credentials: "same-origin" });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setDeleteError(data.error ?? "Failed to delete account. Please try again.");
+      setDeleting(false);
+      return;
     }
+    // The server has ended the session; clear it here too.
+    await signOut();
 
     setDeleting(false);
     setConfirmOpen(false);
@@ -158,7 +149,7 @@ export default function SettingsPage() {
         label="settings"
         lines={["your account,", "your data."]}
         tone="slate"
-        corners={{ left: isMockMode ? "demo mode" : "live account", right: "gdpr export & delete" }}
+        corners={{ left: "your account", right: "gdpr export & delete" }}
       />
 
       <div className="container-page max-w-3xl px-6 py-14 md:px-10 md:py-20">
@@ -179,11 +170,6 @@ export default function SettingsPage() {
           <dd className="truncate font-heading text-lg">{user.email}</dd>
         </div>
       </dl>
-      {isMockMode && (
-        <p className="lower mt-5 font-mono text-xs text-muted-foreground">
-          demo mode: your account only exists in this browser&apos;s local storage.
-        </p>
-      )}
       <button
         onClick={() => signOut()}
         className="lower link-underline mt-6 font-mono text-xs text-muted-foreground hover:text-foreground"
@@ -194,7 +180,7 @@ export default function SettingsPage() {
       <SectionLabel className="mt-16">your data (gdpr)</SectionLabel>
       <p className="lower mt-6 max-w-lg text-sm text-muted-foreground">
         we hold your name, email, the pensions you add (values, contributions and charges) and
-        your cookie choices — stored in the eu (ireland), never sold or shared for marketing.
+        your cookie choices — stored in the eu, never sold or shared for marketing.
         export all of it, correct holdings on the portfolio page, or delete your account for good.
       </p>
       <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-4 border-t border-border pt-6">

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description: "How PensionIQ collects, uses and protects your data, and your rights under GDPR.",
 };
 
-const LAST_UPDATED = "2026-11-03";
+const LAST_UPDATED = "2026-11-04";
 
 const placeholder = "text-warning";
 
@@ -28,7 +28,7 @@ export default function PrivacyPage() {
         label="privacy"
         lines={["what we hold,", "and why."]}
         tone="slate"
-        corners={{ left: `last updated ${LAST_UPDATED}`, right: "gdpr · data stored in ireland" }}
+        corners={{ left: `last updated ${LAST_UPDATED}`, right: "gdpr · data stored in the eu" }}
         lead="what pensioniq collects, why, where it's kept, for how long — and how to see, fix, take away or delete it."
       />
 
@@ -43,7 +43,7 @@ export default function PrivacyPage() {
           <Section title="1. In short">
             <ul>
               <li>We collect only what the site needs: your account, the pensions you add, and your cookie choice.</li>
-              <li>Your data is stored in the EU (Ireland). We never sell it, and there is no advertising, tracking or analytics.</li>
+              <li>Your data is stored and processed in the EU (Amsterdam, Netherlands). We never sell it, and there is no advertising, tracking or analytics.</li>
               <li>You can export it, correct it or delete it yourself at any time from Settings.</li>
               <li>CSV downloads are made on your own device — nothing is sent to us.</li>
             </ul>
@@ -62,9 +62,9 @@ export default function PrivacyPage() {
           <Section title="3. What we collect">
             <ul>
               <li>
-                <strong>Account:</strong> your name and email address, and a password that our
-                database provider stores only as a secure hash. If you sign in with Google, Google
-                shares your name and email with us.
+                <strong>Account:</strong> your name and email address, and your password, stored
+                only as a salted one-way hash (scrypt) that can&apos;t be turned back into the password.
+                If you sign in with Google, Google shares your name and email with us.
               </li>
               <li>
                 <strong>Your portfolio:</strong> what you enter for each holding — the fund, an
@@ -111,12 +111,15 @@ export default function PrivacyPage() {
             <p>We do not sell your data or share it for marketing. These processors run the service for us:</p>
             <ul>
               <li>
-                <strong>Supabase</strong> — database and sign-in. Your account and portfolio are
-                stored in the EU, in Supabase&apos;s Ireland region (eu-west-1).
+                <strong>Railway</strong> — hosts the website, its database and the weekly fund
+                update. All of them run in Railway&apos;s EU region (Amsterdam, Netherlands), so your
+                account and portfolio are stored and processed in the EU. Railway Corporation is a US
+                company, so its staff may access systems from outside the EU for support and
+                operations.
               </li>
               <li>
-                <strong>Netlify</strong> — hosts the website and runs its server code, which may
-                process requests outside the EU (including in the United States).
+                <strong>Google sign-in</strong> — only if you choose &quot;continue with Google&quot;:
+                Google confirms who you are and shares your name and email with us.
               </li>
               <li>
                 <strong>Google (Gemini API)</strong> — only when live AI Suggestions is on, and only
@@ -140,9 +143,9 @@ export default function PrivacyPage() {
           <Section title="6. Cookies and browser storage">
             <p>We only use what is strictly necessary — no advertising, cross-site tracking or analytics:</p>
             <ul>
-              <li><code>sb-…-auth-token</code> (cookie) — keeps you signed in. Removed when you log out.</li>
+              <li><code>piq_session</code> (cookie) — keeps you signed in for up to 30 days. Removed when you log out.</li>
+              <li><code>piq_oauth</code> (cookie) — only during Google sign-in, for up to 10 minutes, to protect the sign-in from forgery.</li>
               <li><code>pensioniq_cookie_consent</code> (browser storage) — remembers your cookie choice.</li>
-              <li>In demo mode only, your demo account and holdings are kept in your browser&apos;s storage and never reach us.</li>
             </ul>
             <p>
               Change or withdraw your choice at any time with <strong>cookie settings</strong> in the
@@ -154,6 +157,7 @@ export default function PrivacyPage() {
             <ul>
               <li>Account and portfolio — until you delete your account. Deletion is immediate.</li>
               <li>Cookie-choice records — 24 months, then deleted automatically (or straight away when you delete your account).</li>
+              <li>Sign-in sessions — until you log out or 30 days without use, then deleted.</li>
               <li>AI Suggestions messages — not stored by us.</li>
               <li>CSV and JSON exports — created on your device; we never receive a copy.</li>
               <li>
@@ -166,9 +170,10 @@ export default function PrivacyPage() {
           <Section title="8. How we protect it">
             <ul>
               <li>Encrypted connections (HTTPS with HSTS) and strict browser security headers.</li>
-              <li>Row-level security in the database: each account can only read and change its own holdings.</li>
-              <li>Passwords are never stored in plain text; you can also sign in with Google.</li>
-              <li>Server keys are kept as secrets in our hosting provider and never sent to browsers.</li>
+              <li>Only our server talks to the database, and every request is checked against your session: each account can only read and change its own holdings.</li>
+              <li>Sign-in cookies are HTTP-only and only work on this site; login attempts are rate-limited.</li>
+              <li>Passwords are never stored in plain text, and session tokens are stored only as hashes.</li>
+              <li>Database credentials and keys are kept as secrets in our hosting provider and never sent to browsers.</li>
             </ul>
           </Section>
 

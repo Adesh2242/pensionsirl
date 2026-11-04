@@ -1,5 +1,9 @@
 # PensionIQ — Production TODO
 
+> **Note (Nov 2026):** written for the earlier Supabase + Netlify setup. The app now runs
+> on Railway with its own Postgres and sign-in — see README.md. Items about Supabase and
+> Netlify no longer apply; the privacy-policy placeholders still do.
+
 This document covers what's needed to take the app the rest of the way to production,
 and what was deliberately left out of v1. Gemini and Supabase auth are **already wired
 up and live** (see status below) — this is what's still outstanding.

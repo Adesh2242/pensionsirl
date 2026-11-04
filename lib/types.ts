@@ -37,7 +37,7 @@ export interface Fund {
   description: string;
   /**
    * Returns as average yearly percentages. The live source publishes 3/5/10
-   * years as cumulative totals; lib/supabase/funds-queries.ts converts them
+   * years as cumulative totals; lib/data/fund-repo.ts converts them
    * on read, so every figure here is "per year". A period listed in
    * `missingReturns` has no history (the fund is younger than that) and its
    * number here is a placeholder 0 — check with hasReturn() before using it.

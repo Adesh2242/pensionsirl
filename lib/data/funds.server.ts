@@ -1,70 +1,57 @@
 import "server-only";
-import { createPublicClient as createClient } from "@/lib/supabase/public";
-import {
-  fetchFundFromSupabase,
-  fetchFundsFromSupabase,
-  fetchLastScrapeTime,
-  fetchProvidersFromSupabase,
-} from "@/lib/supabase/funds-queries";
+import { loadCatalog, type Catalog } from "@/lib/data/fund-repo";
 import { funds as mockFunds, providers as mockProviders, getFund as getMockFund } from "@/lib/mock-data";
 import type { Fund, Provider } from "@/lib/types";
 
 /**
- * Supabase-first, mock-fallback data access for Server Components. Falls
- * back to lib/mock-data.ts whenever Supabase isn't configured, the schema
- * migration hasn't been applied yet (`relation does not exist`), or the
- * tables are empty — so these pages work today and upgrade automatically
- * once supabase/migrations/002_scraper_support.sql is applied and
- * scripts/scrape-funds.ts has run, with no further code changes.
+ * Database-first, bundled-dataset fallback fund data for Server Components
+ * and API routes. The catalogue changes once a week (the Monday scrape), so
+ * it's held in memory for five minutes rather than queried on every request.
+ * When the database isn't configured, is unreachable or is still empty, the
+ * curated dataset in lib/mock-data.ts stands in — and `live` says so.
  */
-export async function getAllFunds(): Promise<Fund[]> {
-  const supabase = await createClient();
-  if (!supabase) return mockFunds;
+const TTL_MS = 5 * 60 * 1000;
+let cache: { at: number; catalog: Catalog } | null = null;
+let inflight: Promise<Catalog | null> | null = null;
 
-  try {
-    const funds = await fetchFundsFromSupabase(supabase);
-    return funds.length > 0 ? funds : mockFunds;
-  } catch (error) {
-    console.warn("Supabase funds query failed, falling back to mock data:", error);
-    return mockFunds;
-  }
+async function catalog(): Promise<Catalog | null> {
+  if (cache && Date.now() - cache.at < TTL_MS) return cache.catalog;
+  inflight ??= loadCatalog()
+    .then((loaded) => {
+      if (loaded && loaded.funds.length > 0) cache = { at: Date.now(), catalog: loaded };
+      return loaded && loaded.funds.length > 0 ? loaded : null;
+    })
+    .catch((error) => {
+      console.warn("Fund catalogue query failed, using bundled data:", error);
+      // Serve the last good copy rather than demo data during a blip.
+      return cache?.catalog ?? null;
+    })
+    .finally(() => {
+      inflight = null;
+    });
+  return inflight;
+}
+
+export async function getCatalog(): Promise<Catalog & { live: boolean }> {
+  const live = await catalog();
+  return live
+    ? { ...live, live: true }
+    : { funds: mockFunds, providers: mockProviders, lastScrapeTime: null, live: false };
+}
+
+export async function getAllFunds(): Promise<Fund[]> {
+  return (await getCatalog()).funds;
 }
 
 export async function getFundBySlug(slug: string): Promise<Fund | undefined> {
-  const supabase = await createClient();
-  if (!supabase) return getMockFund(slug);
-
-  try {
-    const fund = await fetchFundFromSupabase(supabase, slug);
-    return fund ?? getMockFund(slug);
-  } catch (error) {
-    console.warn("Supabase fund query failed, falling back to mock data:", error);
-    return getMockFund(slug);
-  }
+  const live = await catalog();
+  return live ? live.funds.find((f) => f.slug === slug) : getMockFund(slug);
 }
 
 export async function getAllProviders(): Promise<Provider[]> {
-  const supabase = await createClient();
-  if (!supabase) return mockProviders;
-
-  try {
-    const providers = await fetchProvidersFromSupabase(supabase);
-    return providers.length > 0 ? providers : mockProviders;
-  } catch (error) {
-    console.warn("Supabase providers query failed, falling back to mock data:", error);
-    return mockProviders;
-  }
+  return (await getCatalog()).providers;
 }
 
-/** null in mock mode, or if the scraper hasn't completed a run yet. */
 export async function getLastScrapeTime(): Promise<string | null> {
-  const supabase = await createClient();
-  if (!supabase) return null;
-
-  try {
-    return await fetchLastScrapeTime(supabase);
-  } catch (error) {
-    console.warn("Supabase scrape_log query failed:", error);
-    return null;
-  }
+  return (await getCatalog()).lastScrapeTime;
 }

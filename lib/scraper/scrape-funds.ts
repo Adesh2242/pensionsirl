@@ -1,7 +1,7 @@
 /**
  * Fetches real fund data (name, risk rating, category, 1yr/3yr/5yr/10yr
  * returns) from the National Pension Helpline fund explorer and upserts it
- * into Supabase's `funds` + `fund_prices` tables.
+ * into the `funds` + `fund_prices` tables.
  *
  * How: each provider's page (e.g. /zurich-life) is a Next.js App Router
  * page. Requesting its `.txt` suffix returns the page's React Server
@@ -11,19 +11,18 @@
  * a real 3-year return). A plain `fetch()` is enough — no headless browser —
  * so this runs anywhere Node runs.
  *
- * Two entry points share this module:
- *   - scripts/scrape-funds.ts — `pnpm scrape:funds [--dry-run]`, by hand
- *   - netlify/functions/scrape-funds.mts — the weekly schedule
+ * Entry point: scripts/scrape-funds.ts — `pnpm scrape:funds [--dry-run]` by
+ * hand, and `node dist/scrape-funds.mjs` as the weekly Railway cron job.
  *
- * Imports are relative, not `@/`, so the Netlify function bundler resolves
- * them without the app's tsconfig path aliases.
+ * Imports are relative, not `@/`, and nothing here imports "server-only"
+ * modules, so the job bundles and runs as a plain Node script.
  *
  * This relies on the site's internal Next.js data format rather than a
  * published API, so it's inherently more fragile than a versioned contract —
  * if extractInitialFunds() below starts returning null, the site's build
  * likely changed shape and this needs re-checking against the live response.
  */
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type postgres from "postgres";
 import { providers as researchedProviders, slugify, categoryDescription } from "../mock-data";
 import type { AssetClass } from "../types";
 
@@ -80,7 +79,7 @@ interface RawFund {
 type Log = (message: string) => void;
 
 /**
- * Supabase errors can arrive as plain `{ message, code, ... }` objects rather
+ * Errors can arrive as plain `{ message, code, ... }` objects rather
  * than Error instances; String() on those records "[object Object]".
  */
 function errorMessage(error: unknown): string {
@@ -179,143 +178,118 @@ export async function scrapeAllProviders(log: Log = console.log): Promise<Scrape
   return allFunds;
 }
 
+type Sql = ReturnType<typeof postgres>;
+
 /**
  * Upserts providers, funds and today's fund_prices row for each fund, and
- * records the run in scrape_log (which the app shows as "Fund data last
+ * records the run in scrape_log (which the app shows as "fund data
  * updated"). Throws on failure, after marking the scrape_log row failed.
  */
-export async function writeScrapeToSupabase(
-  supabase: SupabaseClient,
+export async function writeScrape(
+  sql: Sql,
   allFunds: ScrapedFund[],
   log: Log = console.log,
 ): Promise<{ funds: number; priceRows: number }> {
   // Zero funds means the source was unreachable or changed shape, not that
   // the market emptied. Recording that as a success would move the site's
-  // "fund data last updated" date forward with nothing new behind it.
+  // "fund data updated" date forward with nothing new behind it.
   if (allFunds.length === 0) {
     throw new Error("Scraped 0 funds — source unreachable or its format changed. Nothing written.");
   }
 
-  const startedAt = new Date().toISOString();
-  const { data: logRow, error: logError } = await supabase
-    .from("scrape_log")
-    .insert({ started_at: startedAt, status: "running" })
-    .select("id")
-    .single();
-  if (logError) log(`Could not write scrape_log start row: ${logError.message}`);
+  const [logRow] = await sql<{ id: number }[]>`insert into scrape_log (status) values ('running') returning id`;
 
   try {
-    log("Upserting providers...");
-    const { error: providerError } = await supabase
-      .from("providers")
-      .upsert(
-        researchedProviders.map((p) => ({ slug: p.slug, name: p.name })),
-        { onConflict: "slug" },
-      );
-    if (providerError) throw providerError;
+    const priceRows = await sql.begin(async (t) => {
+      // postgres.js types drop the call signature from TransactionSql
+      // under current TypeScript; at runtime it is the same tagged template.
+      const tx = t as unknown as Sql;
+      log("Upserting providers...");
+      const providerRows = researchedProviders.map((p) => ({ slug: p.slug, name: p.name }));
+      await tx`
+        insert into providers ${tx(providerRows, "slug", "name")}
+        on conflict (slug) do update set name = excluded.name`;
 
-    log("Upserting funds...");
-    const fundRows = allFunds.map((f) => ({
-      slug: slugify(f.providerSlug, f.name),
-      provider_slug: f.providerSlug,
-      name: f.name,
-      asset_class: mapAssetClass(f.category),
-      risk_rating: f.riskRating,
-      subcategory: f.subcategory || null,
-      description: categoryDescription(mapAssetClass(f.category), f.riskRating),
-      updated_at: new Date().toISOString(),
-    }));
-    const { data: upsertedFunds, error: fundError } = await supabase
-      .from("funds")
-      .upsert(fundRows, { onConflict: "slug" })
-      .select("id, slug");
-    if (fundError) throw fundError;
+      log("Upserting funds...");
+      // One row per slug: the source occasionally lists a fund twice.
+      const bySlug = new Map<string, ScrapedFund>();
+      for (const f of allFunds) bySlug.set(slugify(f.providerSlug, f.name), f);
+      const fundRows = [...bySlug].map(([slug, f]) => ({
+        slug,
+        provider_slug: f.providerSlug,
+        name: f.name,
+        asset_class: mapAssetClass(f.category),
+        risk_rating: f.riskRating,
+        subcategory: f.subcategory || null,
+        description: categoryDescription(mapAssetClass(f.category), f.riskRating),
+      }));
+      const upserted: { id: string; slug: string }[] = await tx`
+        insert into funds ${tx(fundRows, "slug", "provider_slug", "name", "asset_class", "risk_rating", "subcategory", "description")}
+        on conflict (slug) do update set
+          provider_slug = excluded.provider_slug,
+          name = excluded.name,
+          asset_class = excluded.asset_class,
+          risk_rating = excluded.risk_rating,
+          subcategory = excluded.subcategory,
+          description = excluded.description,
+          updated_at = now()
+        returning id, slug`;
+      const idBySlug = new Map(upserted.map((f) => [f.slug, f.id]));
 
-    const idBySlug = new Map(
-      (upsertedFunds as { id: string; slug: string }[]).map((f) => [f.slug, f.id]),
-    );
-    const priceDate = new Date().toISOString().slice(0, 10);
-    const priceRows = allFunds
-      .map((f) => {
-        const fundId = idBySlug.get(slugify(f.providerSlug, f.name));
-        if (!fundId) return null;
-        return {
-          fund_id: fundId,
-          price_date: priceDate,
-          nav: null, // not published by this source, only returns are
-          one_year_return: f.oneYearReturn,
-          three_year_return: f.threeYearReturn,
-          five_year_return: f.fiveYearReturn,
-          ten_year_return: f.tenYearReturn,
-        };
-      })
-      .filter((r): r is NonNullable<typeof r> => r !== null);
-
-    log("Upserting fund_prices...");
-    const { error: priceError } = await supabase
-      .from("fund_prices")
-      .upsert(priceRows, { onConflict: "fund_id,price_date" });
-    if (priceError) throw priceError;
-
-    if (logRow) {
-      await supabase
-        .from("scrape_log")
-        .update({
-          finished_at: new Date().toISOString(),
-          status: "success",
-          funds_updated: allFunds.length,
+      const priceDate = new Date().toISOString().slice(0, 10);
+      const rows = [...bySlug]
+        .map(([slug, f]) => {
+          const fundId = idBySlug.get(slug);
+          if (!fundId) return null;
+          return {
+            fund_id: fundId as string,
+            price_date: priceDate,
+            one_year_return: f.oneYearReturn,
+            three_year_return: f.threeYearReturn,
+            five_year_return: f.fiveYearReturn,
+            ten_year_return: f.tenYearReturn,
+          };
         })
-        .eq("id", logRow.id);
-    }
+        .filter((r): r is NonNullable<typeof r> => r !== null);
 
-    log(`Done — ${allFunds.length} funds, ${priceRows.length} price rows written.`);
-    return { funds: allFunds.length, priceRows: priceRows.length };
+      log("Upserting fund_prices...");
+      await tx`
+        insert into fund_prices ${tx(rows, "fund_id", "price_date", "one_year_return", "three_year_return", "five_year_return", "ten_year_return")}
+        on conflict (fund_id, price_date) do update set
+          one_year_return = excluded.one_year_return,
+          three_year_return = excluded.three_year_return,
+          five_year_return = excluded.five_year_return,
+          ten_year_return = excluded.ten_year_return`;
+      return rows.length;
+    });
+
+    await sql`
+      update scrape_log set finished_at = now(), status = 'success', funds_updated = ${allFunds.length}
+      where id = ${logRow.id}`;
+    log(`Done — ${allFunds.length} funds, ${priceRows} price rows written.`);
+    return { funds: allFunds.length, priceRows };
   } catch (error) {
-    if (logRow) {
-      await supabase
-        .from("scrape_log")
-        .update({
-          finished_at: new Date().toISOString(),
-          status: "failed",
-          error: errorMessage(error),
-        })
-        .eq("id", logRow.id);
-    }
+    await sql`
+      update scrape_log set finished_at = now(), status = 'failed', error = ${errorMessage(error)}
+      where id = ${logRow.id}`.catch(() => {});
     throw error;
   }
-}
-
-/** Scrapes and writes in one go, with a service-role client built from the given credentials. */
-export async function runScrape({
-  supabaseUrl,
-  serviceRoleKey,
-  log = console.log,
-}: {
-  supabaseUrl: string;
-  serviceRoleKey: string;
-  log?: Log;
-}) {
-  const funds = await scrapeAllProviders(log);
-  const client: SupabaseClient = createClient(supabaseUrl, serviceRoleKey);
-  const result = await writeScrapeToSupabase(client, funds, log);
-  await applyRetention(client, log);
-  return result;
 }
 
 /** How long anonymous cookie-consent records are kept, as the privacy policy says. */
 export const CONSENT_RETENTION_MONTHS = 24;
 
 /**
- * Deletes consent records older than CONSENT_RETENTION_MONTHS. Runs with the
- * weekly scrape; a failure is logged, never fatal to the scrape.
+ * Deletes consent records older than CONSENT_RETENTION_MONTHS and expired
+ * sessions. Runs with the weekly scrape; a failure is logged, never fatal.
  */
-async function applyRetention(client: SupabaseClient, log: Log) {
-  const cutoff = new Date();
-  cutoff.setMonth(cutoff.getMonth() - CONSENT_RETENTION_MONTHS);
-  const { error, count } = await client
-    .from("consent_log")
-    .delete({ count: "exact" })
-    .lt("decided_at", cutoff.toISOString());
-  if (error) log(`retention: couldn't prune consent_log — ${error.message}`);
-  else log(`retention: removed ${count ?? 0} consent records older than ${CONSENT_RETENTION_MONTHS} months.`);
+export async function applyRetention(sql: Sql, log: Log = console.log) {
+  try {
+    const consent = await sql`
+      delete from consent_log where decided_at < now() - make_interval(months => ${CONSENT_RETENTION_MONTHS})`;
+    const sessions = await sql`delete from sessions where expires_at < now()`;
+    log(`retention: removed ${consent.count} consent records older than ${CONSENT_RETENTION_MONTHS} months and ${sessions.count} expired sessions.`);
+  } catch (error) {
+    log(`retention: failed — ${errorMessage(error)}`);
+  }
 }

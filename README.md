@@ -1,175 +1,77 @@
 # PensionIQ Ireland
 
-> Ireland's pension fund explorer, comparison tool, and retirement calculator.
+> Ireland's pension fund explorer, comparison tool, retirement calculator and personal pension portfolio.
 
-## Status
+## How it runs
 
-The app runs against **real Gemini and Supabase auth** when `.env.local` is populated
-(see below), and falls back to fully-working mock mode with zero config otherwise. See
-[TODO.md](./TODO.md) for what's still deferred to a later build.
+Everything runs in containers on **Railway**, in its EU region (Amsterdam):
 
-- **Fund data**: Supabase-first, `lib/mock-data.ts`-fallback (`lib/data/funds.server.ts`
-  for Server Components, `lib/hooks/use-funds.ts` client-side) — real provider and fund
-  names sourced from each provider's public fund centre and the [National Pension
-  Helpline fund explorer](https://funds.nationalpensionhelpline.ie) (Aug 2026). The
-  fallback is live today (Supabase's schema migration hasn't been applied to this
-  project yet, so queries 404 and the app silently uses mock data) and will switch to
-  real data automatically once `supabase/migrations/002_scraper_support.sql` is applied
-  and `pnpm scrape:funds` has run — see TODO.md items 2-4.
-- **Auth**: `lib/supabase/client.ts` falls back to a localStorage-backed mock
-  (`lib/supabase/mock-client.ts`) when `NEXT_PUBLIC_SUPABASE_URL` / `_ANON_KEY` aren't
-  set. With them set, it's a real Supabase project — signup respects your project's
-  email-confirmation setting (Supabase's default requires clicking a confirmation link
-  before a session is issued; the signup page handles this and shows a "check your
-  email" state). Account deletion (Settings) is real too — it calls Supabase's admin API
-  via `app/api/account/route.ts`, which needs `SUPABASE_SERVICE_ROLE_KEY`.
-- **AI suggestions**: `app/api/ai/suggest/route.ts` calls Gemini (`gemini-3.6-flash`)
-  when `GEMINI_API_KEY` is set, otherwise returns a templated response grounded in the
-  live-or-mock fund catalog. Responses are capped at ~120 words / 3 bullets and forced to
-  plain text (no markdown) since the chat UI intentionally doesn't use
-  `dangerouslySetInnerHTML`. The AI Suggestions page discloses upfront that messages are
-  sent to Google.
-- **Portfolio**: `/portfolio` (signed in). Each holding is a fund, its value on a
-  statement date, and monthly contributions (yours and your employer's). On every
-  visit each holding is estimated forward from that anchor at the fund's 1yr return
-  less its AMC; a new statement re-anchors it. The page totals the portfolio, shows
-  the change since your last visit, blended charge and risk, and the asset-class mix,
-  then projects 10/20/30 years on each fund's long-run (10yr, else 5yr) trend — capped
-  at 12%/yr, net of charges, with a cautious–optimistic range scaled by risk rating —
-  in future euros or today's money. Logic in `lib/portfolio/projection.ts`, storage in
-  `lib/portfolio/store.ts` (`tracked_funds`, migrations 004 + 005).
-- **Fund scraper**: `lib/scraper/scrape-funds.ts` — a plain `fetch()` against each
-  provider page's Next.js React Server Component payload (`/​{slug}.txt`), which
-  embeds the same structured fund data the page renders from, no headless
-  browser needed. Runs weekly (Mondays 06:00 UTC) as a **Netlify scheduled
-  function**, `netlify/functions/scrape-funds.mts`, which needs
-  `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in the site's Netlify
-  environment variables and skips with a log line until both are set; run it on
-  demand from Netlify → Logs → Functions → `scrape-funds` → **Run now**, or by hand
-  with `pnpm scrape:funds` (`scripts/scrape-funds.ts`). A run that scrapes 0 funds
-  fails rather than recording a "success". Verified against the live site
-  (`pnpm scrape:funds --dry-run`): 388 real funds across all 10 providers, in under
-  2 seconds.
-- **Security**: static CSP + standard security headers (`next.config.ts`), same-origin
-  check on the AI route, durable rate limiting (`lib/rate-limit.ts` — Upstash Redis when
-  configured, in-memory sliding window otherwise), `error.tsx`/`global-error.tsx`
-  boundaries, `/api/health` for uptime checks.
-- **Privacy**: `/privacy` policy page (contains `[PLACEHOLDER]`s that need real business
-  details before it's legally usable — see TODO.md), Gemini disclosed as a data
-  processor, cookie consent logged server-side (best-effort, `app/api/consent/route.ts`)
-  in addition to localStorage.
+| Service | What it runs | Notes |
+|---|---|---|
+| `web` | `node server.js` — the Next.js standalone server | Pre-deploy: `node dist/migrate.mjs`. Healthcheck: `/api/health` |
+| `scrape` | `node dist/scrape-funds.mjs` — the weekly fund update | Cron `0 6 * * 1` (Mondays 06:00 UTC), same image |
+| `Postgres` | Railway's Postgres | Reached over the private network as `DATABASE_URL` |
 
-## Tech Stack
+All three come from one image built by the `Dockerfile`. Nothing touches the database
+at build time, so the build needs no secrets.
 
-- **Frontend:** Next.js 16 (App Router, Turbopack), TypeScript, Tailwind CSS v4,
-  shadcn/ui, Recharts
-- **Backend (when configured):** Supabase (PostgreSQL + Auth + Row Level Security)
-- **Package Manager:** pnpm
+- **Accounts** — our own email/password sign-in (`app/api/auth/*`, `lib/auth/*`):
+  scrypt password hashes, random session tokens in an HTTP-only `SameSite=Lax` cookie
+  with only their SHA-256 stored, rate-limited logins, and a same-origin check on every
+  write. Accounts migrated from Supabase keep their bcrypt hash until their next login,
+  when it's upgraded to scrypt. "Continue with Google" switches on when
+  `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` are set.
+- **Data** — browsers never talk to the database. Fund data comes from the server
+  (`lib/data/fund-repo.ts`, cached five minutes in `lib/data/funds.server.ts`) and
+  `/api/funds`. Portfolio holdings go through `/api/holdings`, scoped to the session's
+  user in every query (`lib/portfolio/repo.ts`). Without a database the site still
+  renders on the bundled sample funds (`lib/mock-data.ts`), with accounts switched off.
+- **Schema** — `db/migrations/*.sql`, applied in order by `scripts/migrate.ts`, which
+  records them in `schema_migrations`.
+- **Fund scraper** — `lib/scraper/scrape-funds.ts` reads each provider page's Next.js
+  payload on the National Pension Helpline site (388 funds across 10 providers). A run
+  that scrapes 0 funds fails rather than recording a success. The same job applies data
+  retention: consent records after 24 months, expired sessions.
+- **AI suggestions** — Gemini when `GEMINI_API_KEY` is set, otherwise built-in search
+  over the catalogue.
+- **Exports** — PDF reports (with charts) and CSV from the calculator and portfolio,
+  generated in the browser.
 
-## Local Setup
+## Local setup
 
-### Prerequisites
+```bash
+docker compose up --build              # site on http://localhost:3000, with Postgres
+docker compose run --rm scrape         # load live fund data
+```
 
-- Node.js 20.9+
-- pnpm (`corepack enable pnpm`)
-
-### Steps
+Or without Docker: Node 22+ and pnpm, a Postgres, then
 
 ```bash
 pnpm install
+cp .env.local.example .env.local       # set DATABASE_URL
+pnpm migrate && pnpm scrape:funds
 pnpm dev
 ```
 
-The app runs at http://localhost:3000 fully in mock mode — browse funds, run the
-calculator, chat with the AI suggestions demo, and sign up/log in (stored in your
-browser only) without any external services.
+## Environment variables
 
-### Enabling real services
+| Variable | Where | Purpose |
+|---|---|---|
+| `DATABASE_URL` | web, scrape | `${{Postgres.DATABASE_URL}}` on Railway |
+| `CONSENT_HASH_SALT` | web | Salt for hashing IPs in the cookie-consent log |
+| `NEXT_PUBLIC_SITE_URL` | web | Public address (metadata, sitemap, Google sign-in) |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | web | Optional: Google sign-in (redirect URI `<site>/auth/callback`) |
+| `GEMINI_API_KEY` | web | Optional: live AI suggestions |
+| `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | web | Optional: rate limits shared across replicas |
 
-Copy `.env.local.example` to `.env.local` and fill in:
+## Security & GDPR
 
-| Variable | Purpose |
-|---|---|
-| `GEMINI_API_KEY` | Enables live AI suggestions via Gemini instead of templated mock replies |
-| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Enables real Supabase auth + fund data instead of the localStorage/mock-data fallback |
-| `SUPABASE_SERVICE_ROLE_KEY` | Needed for real account deletion (`app/api/account/route.ts`) and for the fund scraper to write (`pnpm scrape:funds` and the Netlify scheduled function) |
-| `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | Durable rate limiting on the AI route instead of the in-memory fallback |
-| `NEXT_PUBLIC_SITE_URL` | Your real domain, used in `metadataBase`/sitemap/robots |
-
-To stand up a real Supabase project: create one at [supabase.com](https://supabase.com)
-(EU region recommended), then run `supabase/migrations/001_initial_schema.sql` followed
-by `002_scraper_support.sql` (then `003`–`005` in order) via `supabase db push` or the
-SQL Editor. This creates the
-`providers`/`funds`/`fund_prices`/`profiles`/`saved_funds` tables with RLS policies.
-Once applied, run `pnpm scrape:funds` (needs `SUPABASE_SERVICE_ROLE_KEY`) to populate
-real fund data — the fund pages pick it up automatically, no code changes needed.
-
-## Deployment (Netlify)
-
-Connect the repo through the Netlify dashboard and deploy — no `netlify.toml` needed.
-Netlify's official guidance is to rely on its zero-config Next.js detection rather than
-pinning the adapter plugin yourself, since pinning blocks automatic adapter updates.
-
-Set the same variables as above (**Settings → Environment variables**) for the
-production site, plus:
-
-| Variable | Purpose |
-|---|---|
-| `NEXT_PUBLIC_SITE_URL` | Set to your real Netlify/custom domain, not the default in `lib/site.ts` |
-
-**Two things worth knowing before you deploy:**
-
-- **`proxy.ts`** (this app's route-protection file — Next.js 16 renamed
-  `middleware.ts` to `proxy.ts`) is supported on Netlify: their Next.js Runtime
-  (v5, actively maintained for Next.js 13.5+) implements it via Edge Functions,
-  and Netlify [announced Next.js 16 support](https://www.netlify.com/changelog/next-js-16-deploy-on-netlify/)
-  with no required config changes. The only stated Node.js-middleware limitations
-  are no filesystem access and no C++ addons — `proxy.ts` here only touches
-  cookies via `lib/supabase/middleware.ts`, so it's within that envelope. Still
-  worth confirming with a real deploy, since this couldn't be verified by
-  reading the code alone.
-- **Set `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` in production.**
-  Without them, `lib/rate-limit.ts` falls back to an in-memory `Map`, which
-  doesn't persist reliably across Netlify's serverless function invocations —
-  the AI route's 20-requests/hour limit would be unreliable without durable
-  (Upstash) rate limiting.
-
-## Project Structure
-
-| Purpose | File(s) |
-|---|---|
-| Mock fund data (fallback) | `lib/mock-data.ts`, `lib/types.ts` |
-| Supabase-first fund data access | `lib/data/funds.server.ts` (Server Components), `lib/hooks/use-funds.ts` (Client Components), `lib/supabase/funds-queries.ts`, `lib/supabase/public.ts` |
-| Fund scraper | `lib/scraper/scrape-funds.ts`, `netlify/functions/scrape-funds.mts`, `scripts/scrape-funds.ts` |
-| Tax relief / projection math | `lib/calculations.ts` |
-| Supabase clients (real + mock fallback) | `lib/supabase/client.ts`, `lib/supabase/server.ts`, `lib/supabase/mock-client.ts`, `lib/supabase/admin.ts` (service-role, server-only) |
-| Auth state | `lib/auth-context.tsx` |
-| Route protection | `proxy.ts` (Next.js 16's renamed `middleware.ts`), `lib/supabase/middleware.ts` |
-| AI suggestions API | `app/api/ai/suggest/route.ts` |
-| Account deletion API | `app/api/account/route.ts` |
-| Consent logging API | `app/api/consent/route.ts` |
-| Durable rate limiting | `lib/rate-limit.ts` |
-| DB schema | `supabase/migrations/001_initial_schema.sql` … `005_portfolio_holdings.sql` |
-| Privacy policy | `app/privacy/page.tsx` |
-| Environment vars | `.env.local.example` |
-
-## GDPR
-
-- **Privacy policy**: `/privacy` — contains `[PLACEHOLDER]`s that need real business
-  details filled in before it's legally usable (see TODO.md).
-- **Cookie banner**: granular Accept All / Reject / Manage, consent stored in
-  localStorage (`lib/consent.ts`, source of truth) and best-effort logged server-side to
-  `consent_log` (`app/api/consent/route.ts`) once the schema is applied.
-- **Data export**: Settings → Export my data, downloads a JSON file of your account +
-  consent state.
-- **Account deletion**: Settings → Delete account — real deletion via Supabase's admin
-  API (`app/api/account/route.ts`, needs `SUPABASE_SERVICE_ROLE_KEY`) when Supabase is
-  configured; clears localStorage in mock mode.
-- **AI Suggestions**: discloses upfront that messages are sent to Google's Gemini API.
-
-This is meaningfully better than a UI-only mock, but **not a compliance sign-off** — see
-TODO.md §7 for what's still missing (a data retention policy, and the privacy policy's
-placeholders need a qualified person's review).
+- Strict CSP and security headers (`next.config.ts`), same-origin checks on every write,
+  rate limits on sign-up, login, AI and consent.
+- Data stored and processed in the EU (Railway, Amsterdam). Privacy policy at `/privacy`
+  (controller details still `[PLACEHOLDER]`), terms & disclaimer at `/terms`.
+- Settings → export everything (JSON, holdings as CSV), change cookie choices, or delete
+  the account — which removes holdings, sessions and consent records immediately.
 
 ## Data Sources & Attribution
 

@@ -1,0 +1,54 @@
+# The whole stack locally, the same containers Railway runs:
+#
+#   docker compose up --build        # http://localhost:3000
+#   docker compose run --rm scrape   # load live fund data (weekly job)
+#
+# Postgres data lives in the `pgdata` volume; `docker compose down -v` wipes it.
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: pensioniq
+      POSTGRES_PASSWORD: pensioniq
+      POSTGRES_DB: pensioniq
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pensioniq"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    build: .
+    command: ["node", "dist/migrate.mjs"]
+    environment:
+      DATABASE_URL: postgres://pensioniq:pensioniq@db:5432/pensioniq
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build: .
+    ports:
+      - "3000:8080"
+    environment:
+      DATABASE_URL: postgres://pensioniq:pensioniq@db:5432/pensioniq
+      SESSION_SECRET: local-development-only
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  scrape:
+    build: .
+    command: ["node", "dist/scrape-funds.mjs"]
+    environment:
+      DATABASE_URL: postgres://pensioniq:pensioniq@db:5432/pensioniq
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    profiles: ["jobs"]
+
+volumes:
+  pgdata:

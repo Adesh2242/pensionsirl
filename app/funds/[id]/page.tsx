@@ -10,21 +10,17 @@ import { RiskBadge, riskTextClass } from "@/components/funds/risk-badge";
 import { RiskMeter } from "@/components/funds/risk-meter";
 import { AssetClassBadge } from "@/components/funds/asset-class-badge";
 import { ReturnValue } from "@/components/funds/return-value";
-import { getAllFunds, getFundBySlug, getLastScrapeTime } from "@/lib/data/funds.server";
+import { getFundBySlug, getLastScrapeTime } from "@/lib/data/funds.server";
 import { formatAmc, formatLastUpdated } from "@/lib/utils";
 import { returnFor } from "@/lib/fund-returns";
 import { Disclaimer } from "@/components/legal/disclaimer";
 
 type Params = Promise<{ id: string }>;
 
-// Rebuilt at most hourly, so a Monday scrape reaches these pages the same
-// morning instead of waiting for the next deploy.
-export const revalidate = 3600;
-
-export async function generateStaticParams() {
-  const funds = await getAllFunds();
-  return funds.map((fund) => ({ id: fund.slug }));
-}
+// Rendered per request from the cached catalogue (lib/data/funds.server.ts):
+// the database isn't reachable while the container image is built, so
+// nothing fund-related is baked in at build time.
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { id } = await params;

@@ -102,13 +102,13 @@ function FundsExplorer() {
         label="fund explorer"
         lines={["every fund,", "one list."]}
         corners={{
-          left: source === "supabase" ? "live data" : "demo data",
+          left: source === "live" ? "live data" : "demo data",
           right: lastScrapeTime ? `updated ${formatLastUpdated(lastScrapeTime)} utc` : "refreshed weekly",
         }}
         lead={
           <>
             {funds.length} funds across {providers.length} irish providers.{" "}
-            {source === "supabase"
+            {source === "live"
               ? "sourced from the national pension helpline fund explorer — see "
               : "performance figures are illustrative — see "}
             <Link href="/how-it-works" className="link-underline text-foreground">
