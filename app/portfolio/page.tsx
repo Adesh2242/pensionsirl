@@ -12,6 +12,8 @@ import { PortfolioChart } from "@/components/portfolio/portfolio-chart";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth-context";
 import { useFunds } from "@/lib/hooks/use-funds";
+import { useMarket } from "@/lib/hooks/use-market";
+import { marketAsOf, type MarketData } from "@/lib/portfolio/market";
 import {
   addTrackedFund,
   listTrackedFunds,
@@ -25,11 +27,12 @@ import {
   RISK_SPREAD_PER_POINT,
   chargesFor,
   type HoldingCharges,
+  daysSince,
   estimateHoldingValue,
   growthAssumption,
   type ChargesBreakdown,
   type GrowthAssumption,
-  monthsBetween,
+  trackingFor,
   projectPortfolio,
   summarisePortfolio,
   totalMonthly,
@@ -120,22 +123,25 @@ function HoldingRow({
   index,
   onUpdate,
   onRemove,
+  market,
 }: {
   position: Position;
   index: number;
   onUpdate: () => void;
   onRemove: () => void;
+  market?: MarketData;
 }) {
   const { holding, fund, valueNow } = position;
   const [confirming, setConfirming] = useState(false);
   const charges = chargesFor(holding, fund);
+  const tracking = trackingFor(holding, fund, market);
 
   // Growth since the anchor = what it's worth now, less the anchored value and
-  // every contribution made since. The rest is the fund's return.
-  const monthsSince = monthsBetween(new Date(holding.valueAsOf), new Date());
-  const paidInSince = totalMonthly(holding) * monthsSince;
+  // every contribution paid in since (spread daily, as in the estimate).
+  const days = daysSince(holding.valueAsOf, new Date());
+  const paidInSince = ((totalMonthly(holding) * 12) / 365) * days;
   const growthSince = valueNow - holding.startValue - paidInSince;
-  const stale = monthsSince >= 12;
+  const stale = days >= 365;
 
   return (
     <div className="border-t border-border py-8">
@@ -163,11 +169,11 @@ function HoldingRow({
         <div>
           <p className="lower font-mono text-xs text-muted-foreground">worth now (est.)</p>
           <p className="tabular mt-2 font-heading text-2xl">{formatEuro(valueNow)}</p>
-          {monthsSince > 0 && (
+          {days > 0 && (
             <p
               className={`tabular lower mt-1 font-mono text-xs ${growthSince >= 0 ? "text-success" : "text-destructive"}`}
             >
-              {signed(growthSince)} growth since {formatDate(holding.valueAsOf)}
+              {signed(growthSince)} market change since {formatDate(holding.valueAsOf)}
             </p>
           )}
         </div>
@@ -216,7 +222,14 @@ function HoldingRow({
         {holding.startValue === 0
           ? `started from nothing on ${formatDate(holding.valueAsOf, true)}, built up from contributions`
           : `${formatEuro(holding.startValue)} on ${formatDate(holding.valueAsOf, true)}`}
-        , estimated forward at this fund&apos;s 1yr return less its charges.{" "}
+        , kept current daily{" "}
+        {tracking.covered ? (
+          <>
+            with <span className="text-foreground">{tracking.label}</span>, less charges.
+          </>
+        ) : (
+          <>at this fund&apos;s 1-year return, less charges.</>
+        )}{" "}
         <span className="text-foreground">{describeGrowth(growthAssumption(fund, charges.amcPct))}</span>.
         <br />
         charges: <span className="text-foreground">{describeCharges(charges)}</span>
@@ -474,16 +487,25 @@ function PortfolioContent() {
 
   const fundsBySlug = useMemo(() => new Map(funds.map((f) => [f.slug, f])), [funds]);
 
+  // Daily index prices back to the earliest date any holding needs: its
+  // statement date, or the last visit if that's earlier.
+  const marketFrom = useMemo(() => {
+    const dates = (tracked ?? []).flatMap((t) => [t.valueAsOf, t.lastSeenAt.slice(0, 10)]);
+    return dates.length ? dates.sort()[0] : null;
+  }, [tracked]);
+  const { market, ready: marketReady } = useMarket(marketFrom);
+  const pricesAsOf = market ? marketAsOf(market) : null;
+
   const positions = useMemo<Position[]>(
     () =>
       (tracked ?? []).flatMap((holding) => {
         const fund = fundsBySlug.get(holding.fundSlug);
-        return fund ? [{ holding, fund, valueNow: estimateHoldingValue(holding, fund, now) }] : [];
+        return fund ? [{ holding, fund, valueNow: estimateHoldingValue(holding, fund, now, market) }] : [];
       }),
-    [tracked, fundsBySlug, now],
+    [tracked, fundsBySlug, now, market],
   );
 
-  const summary = useMemo(() => summarisePortfolio(positions, now), [positions, now]);
+  const summary = useMemo(() => summarisePortfolio(positions, now, market), [positions, now, market]);
   const projection = useMemo(
     () => projectPortfolio(positions, { years: horizon, now, real }),
     [positions, horizon, now, real],
@@ -523,7 +545,8 @@ function PortfolioContent() {
     if (seenAt) setTracked((prev) => (prev ?? []).map((t) => ({ ...t, lastSeenAt: seenAt })));
   }
 
-  if (authLoading || !user || tracked === null) {
+  // Wait for prices too, so values don't jump once they arrive.
+  if (authLoading || !user || tracked === null || (tracked.length > 0 && !marketReady && !loadError)) {
     return (
       <div className="container-page max-w-4xl px-6 py-32 md:px-10">
         {loadError ? (
@@ -641,7 +664,14 @@ function PortfolioContent() {
                   {formatEuro(summary.valueNow)}
                 </p>
                 <p className="lower mt-4 font-mono text-xs text-muted-foreground">
-                  estimated from each fund&apos;s latest returns ·{" "}
+                  {pricesAsOf ? (
+                    <>
+                      estimated daily from market prices to{" "}
+                      <span className="text-foreground">{formatDate(pricesAsOf, true)}</span> ·{" "}
+                    </>
+                  ) : (
+                    <>estimated from each fund&apos;s latest returns · </>
+                  )}
                   {lastScrapeTime ? (
                     <span className="text-foreground">
                       fund data updated {formatLastUpdated(lastScrapeTime)} utc
@@ -950,6 +980,7 @@ function PortfolioContent() {
                       index={i}
                       onUpdate={() => openUpdate(position.holding)}
                       onRemove={() => handleRemove(position.holding.id)}
+                      market={market}
                     />
                   ))}
                   <div className="border-t border-border" />

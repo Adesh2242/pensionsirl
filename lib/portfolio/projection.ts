@@ -1,5 +1,6 @@
 import type { AssetClass, Fund, TrackedFund } from "@/lib/types";
 import { returnFor } from "@/lib/fund-returns";
+import { benchmarkFor, blendedReturn, describeBenchmark, type MarketData } from "@/lib/portfolio/market";
 
 /** Full calendar months between two dates (never negative). */
 export function monthsBetween(start: Date, end: Date): number {
@@ -112,23 +113,59 @@ export function totalMonthly(holding: TrackedFund): number {
   return holding.monthlyContribution + holding.employerContribution;
 }
 
+const DAY_MS = 86_400_000;
+const isoDay = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+const utcDay = (d: Date) => Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+
+/** Whole days from a holding's statement date to `at`. */
+export function daysSince(valueAsOf: string, at: Date): number {
+  return Math.max(0, Math.floor((utcDay(at) - Date.parse(`${valueAsOf}T00:00:00Z`)) / DAY_MS));
+}
+
 /**
- * Estimates a holding's value on `at`, starting from the value the user
- * entered on `valueAsOf` and growing it month by month at the fund's most
- * recent (1yr) return net of its charges, plus contributions.
- *
- * Tracking uses the 1yr figure on purpose: it is the best evidence of how the
- * fund actually did over the months since the user's statement. The long-run
- * projection below deliberately does not.
+ * How a holding is being kept current: the markets it's tracked against,
+ * and whether daily prices cover the whole time since its statement.
  */
-export function estimateHoldingValue(holding: TrackedFund, fund: Fund, at: Date): number {
-  return projectValue({
-    startValue: holding.startValue,
-    monthlyContribution: totalMonthly(holding),
-    annualReturnPct: returnFor(fund, "1y") ?? 0,
-    charges: chargesFor(holding, fund),
-    months: monthsBetween(new Date(holding.valueAsOf), at),
-  });
+export function trackingFor(holding: TrackedFund, fund: Fund, market?: MarketData) {
+  const weights = benchmarkFor(fund);
+  const covered =
+    !!market && blendedReturn(weights, market, holding.valueAsOf, holding.valueAsOf) !== null;
+  return { weights, label: describeBenchmark(weights), covered };
+}
+
+/**
+ * Estimates a holding's value on `at`, day by day from the value the user
+ * entered on `valueAsOf`:
+ *
+ * - each day it moves with the markets the fund invests in (see
+ *   lib/portfolio/market.ts), or — for days without market prices, or when
+ *   none are loaded — at the fund's latest 1-year return, spread evenly;
+ * - the annual management charge comes off daily;
+ * - contributions arrive evenly through the month, less any contribution
+ *   charge, and any policy fee is taken evenly through the year.
+ *
+ * So the value moves every day, and with the markets: if global shares fall
+ * 5% this week, a global equity holding shows roughly that.
+ */
+export function estimateHoldingValue(holding: TrackedFund, fund: Fund, at: Date, market?: MarketData): number {
+  const charges = chargesFor(holding, fund);
+  const days = daysSince(holding.valueAsOf, at);
+  const weights = market ? benchmarkFor(fund) : null;
+  const fallbackDaily = Math.pow(1 + (returnFor(fund, "1y") ?? 0) / 100, 1 / 365) - 1;
+  const chargeDaily = Math.pow(1 + charges.amcPct / 100, 1 / 365);
+  const contributionDaily = ((totalMonthly(holding) * 12) / 365) * (1 - charges.contributionChargePct / 100);
+  const feeDaily = charges.policyFee / 365;
+
+  const start = Date.parse(`${holding.valueAsOf}T00:00:00Z`);
+  let value = holding.startValue;
+  let previous = holding.valueAsOf;
+  for (let i = 1; i <= days; i++) {
+    const today = isoDay(start + i * DAY_MS);
+    const marketReturn = weights && market ? blendedReturn(weights, market, previous, today) : null;
+    value = Math.max(((value * (1 + (marketReturn ?? fallbackDaily))) / chargeDaily) + contributionDaily - feeDaily, 0);
+    previous = today;
+  }
+  return Math.round(value * 100) / 100;
 }
 
 // ─── Projection: what it could be worth ─────────────────────────────────────
@@ -346,7 +383,7 @@ export interface PortfolioSummary {
   allocation: { assetClass: AssetClass; value: number; share: number }[];
 }
 
-export function summarisePortfolio(positions: Position[], now: Date): PortfolioSummary {
+export function summarisePortfolio(positions: Position[], now: Date, market?: MarketData): PortfolioSummary {
   const valueNow = positions.reduce((sum, p) => sum + p.valueNow, 0);
 
   // The latest of the holdings' last-seen times stands for the last visit.
@@ -360,7 +397,7 @@ export function summarisePortfolio(positions: Position[], now: Date): PortfolioS
           sum +
           (lastSeen < new Date(p.holding.valueAsOf)
             ? p.holding.startValue
-            : estimateHoldingValue(p.holding, p.fund, lastSeen)),
+            : estimateHoldingValue(p.holding, p.fund, lastSeen, market)),
         0,
       )
     : valueNow;

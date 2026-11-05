@@ -143,7 +143,7 @@ export function portfolioCsvRows({
     }),
     [],
     ["Each holding grows at its fund's average yearly return over 5 years (3 or 1 if younger), less its annual charge."],
-    ["Contributions are assumed to stay as they are today. Estimated values grow your statement value at the fund's latest 1-year return."],
+    ["Contributions are assumed to stay as they are today. Estimated values move your statement value day by day with market indices matching each fund's investments (or its 1-year return where no prices exist), less charges."],
   ];
   return rows;
 }

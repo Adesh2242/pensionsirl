@@ -21,6 +21,7 @@ const about = [
 
 const sources = [
   { href: "https://funds.nationalpensionhelpline.ie", label: "national pension helpline" },
+  { href: "https://finance.yahoo.com", label: "index prices: yahoo finance" },
   {
     href: "https://www.revenue.ie/en/jobs-and-pensions/pensions/index.aspx",
     label: "revenue.ie",
