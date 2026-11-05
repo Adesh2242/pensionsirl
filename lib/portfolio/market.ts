@@ -21,6 +21,18 @@ export const BENCHMARKS = {
   corp: { symbol: "EUN5.DE", label: "euro corporate bonds", source: "iShares Core € Corp Bond UCITS ETF" },
   cash: { symbol: "XEON.DE", label: "cash", source: "Xtrackers II EUR Overnight Rate Swap UCITS ETF" },
   property: { symbol: "IQQ6.DE", label: "listed property", source: "iShares Developed Markets Property Yield UCITS ETF (EUR)" },
+  allWorld: { symbol: "IUSQ.DE", label: "global shares incl. emerging", source: "iShares MSCI ACWI UCITS ETF (EUR)" },
+  worldHedged: { symbol: "IBCH.DE", label: "global shares (currency-hedged)", source: "iShares MSCI World EUR Hedged UCITS ETF" },
+  usa: { symbol: "SXR8.DE", label: "us shares", source: "iShares Core S&P 500 UCITS ETF (EUR)" },
+  japan: { symbol: "SXR5.DE", label: "japanese shares", source: "iShares MSCI Japan UCITS ETF (EUR)" },
+  pacific: { symbol: "SXR1.DE", label: "asia-pacific shares", source: "iShares Core MSCI Pacific ex-Japan UCITS ETF (EUR)" },
+  uk: { symbol: "SXRW.DE", label: "uk shares", source: "iShares Core FTSE 100 UCITS ETF (EUR)" },
+  smallCap: { symbol: "IUSN.DE", label: "global smaller companies", source: "iShares MSCI World Small Cap UCITS ETF (EUR)" },
+  tech: { symbol: "XDWT.DE", label: "global technology shares", source: "Xtrackers MSCI World Information Technology UCITS ETF" },
+  infrastructure: { symbol: "IQQI.DE", label: "global infrastructure", source: "iShares Global Infrastructure UCITS ETF (EUR)" },
+  commodities: { symbol: "EXXY.DE", label: "commodities", source: "iShares Diversified Commodity Swap UCITS ETF" },
+  inflationLinked: { symbol: "IBCI.DE", label: "inflation-linked bonds", source: "iShares € Inflation Linked Govt Bond UCITS ETF" },
+  emBonds: { symbol: "IUS7.DE", label: "emerging-market bonds", source: "iShares J.P. Morgan $ EM Bond UCITS ETF (EUR)" },
 } as const;
 
 export type BenchmarkId = keyof typeof BENCHMARKS;
@@ -29,52 +41,122 @@ export type BenchmarkWeights = Partial<Record<BenchmarkId, number>>;
 /** Share of the fund in shares, by SRI risk rating, for funds with no clearer label. */
 const EQUITY_BY_RISK: Record<number, number> = { 1: 0, 2: 0.1, 3: 0.25, 4: 0.45, 5: 0.65, 6: 0.85, 7: 1 };
 
-/** Shares and bonds in proportion, bonds two-thirds government, one-third corporate. */
-function mix(equity: number, equityId: BenchmarkId = "world"): BenchmarkWeights {
-  const bonds = 1 - equity;
+export type BondMix = "gov-corp" | "gov" | "corp" | "cash";
+
+/** Shares (in one market) and bonds in proportion. */
+export function mix(equity: number, equityId: BenchmarkId = "world", bonds: BondMix = "gov-corp"): BenchmarkWeights {
+  const rest = 1 - equity;
   const w: BenchmarkWeights = {};
   if (equity > 0) w[equityId] = equity;
-  if (bonds > 0) {
-    w.gov = (bonds * 2) / 3;
-    w.corp = bonds / 3;
+  if (rest > 0) {
+    if (bonds === "gov-corp") {
+      w.gov = (rest * 2) / 3;
+      w.corp = rest / 3;
+    } else {
+      w[bonds] = rest;
+    }
   }
   return w;
 }
 
 /**
- * Which markets a fund is tracked against. Uses the source's own
- * subcategory where it says (e.g. "Managed Balanced (<65% Equity)"), then
- * the fund name, then the asset class and risk rating.
+ * The family of blends a fund can be fitted within: which share markets
+ * may stand in for its equity, how much of it is in shares (and the most
+ * likely amount, which the fit is pulled towards), and what the rest is in.
+ * Fixed-blend funds (cash, a single bond market) have nothing to fit.
  */
-export function benchmarkFor(fund: Fund): BenchmarkWeights {
+export interface FitSpace {
+  equityIds: BenchmarkId[];
+  shareMin: number;
+  shareMax: number;
+  sharePrior: number;
+  bondMixes: BondMix[];
+  /** A blend used as-is: fitting only measures how close it is. */
+  fixed?: BenchmarkWeights;
+}
+
+const GLOBAL_EQUITY: BenchmarkId[] = ["world", "allWorld", "worldHedged"];
+
+/**
+ * What a fund invests in, from the source's subcategory, the fund's name,
+ * its asset class and its risk rating. Name rules come first because the
+ * subcategory is broad: "Equity Global" covers hedged, small-company,
+ * technology and infrastructure funds alike.
+ */
+export function fitSpaceFor(fund: Fund): FitSpace {
   const sub = (fund.subcategory ?? "").toLowerCase();
   const name = fund.name.toLowerCase();
   const risk = Math.min(Math.max(Math.round(fund.riskRating), 1), 7);
+  const fixed = (w: BenchmarkWeights): FitSpace => ({ equityIds: [], shareMin: 0, shareMax: 0, sharePrior: 0, bondMixes: [], fixed: w });
+  const equity = (ids: BenchmarkId[]): FitSpace => ({ equityIds: ids, shareMin: 0.85, shareMax: 1, sharePrior: 1, bondMixes: ["cash"] });
 
-  if (sub.includes("money market") || /\bcash\b|liquidity|deposit/.test(name)) return { cash: 1 };
-  if (fund.assetClass === "Property" || sub.includes("property")) return { property: 1 };
+  if (sub.includes("money market") || /\bcash\b|liquidity|deposit/.test(name)) return fixed({ cash: 1 });
+  if (fund.assetClass === "Property" || sub.includes("property") || /\breit\b|property/.test(name))
+    return /europe|euro/.test(name) ? fixed({ property: 0.5, europe: 0.5 }) : fixed({ property: 1 });
+
+  // Specialist equity, by name.
+  if (/infrastructure/.test(name)) return equity(["infrastructure"]);
+  if (/energy|metals|commodit|resources|gold/.test(name) || sub.includes("materials")) return equity(["commodities"]);
+  if (/technology|\btech\b/.test(name) || sub.includes("information technology")) return equity(["tech"]);
+  if (/small(er)? (cap|compan)/.test(name) || sub.includes("small cap")) return equity(["smallCap"]);
 
   if (fund.assetClass === "Equity" || sub.startsWith("equity")) {
-    if (sub.includes("emerging") || /emerging|china|india/.test(name)) return { emerging: 1 };
-    if (/eurozone|advanced europe|equity uk|equity ireland/.test(sub) || /\beuro(zone|pean)?\b|irish equity|uk equity/.test(name))
-      return { europe: 1 };
-    return { world: 1 };
+    if (sub.includes("emerging") || /emerging|china|india/.test(name)) return equity(["emerging"]);
+    if (sub.includes("north america") || /north americ|\bus\b|\busa\b|american|s&p/.test(name)) return equity(["usa"]);
+    if (sub.includes("japan") || /japan/.test(name)) return equity(["japan"]);
+    if (sub.includes("asia") || /asia|pacific/.test(name)) return equity(["pacific", "emerging"]);
+    if (sub.includes("equity uk") || /\buk\b|british/.test(name)) return equity(["uk"]);
+    if (/eurozone|advanced europe|equity ireland/.test(sub) || /\beuro(zone|pean)?\b|irish equity/.test(name)) return equity(["europe"]);
+    if (/hedged/.test(name) && !/unhedged/.test(name)) return equity(["worldHedged"]);
+    return equity(GLOBAL_EQUITY);
   }
 
   if (fund.assetClass === "Bond" || sub.startsWith("bond")) {
-    if (sub.includes("government") || sub.includes("index-linked") || /gilt|government|sovereign/.test(name)) return { gov: 1 };
-    if (sub.includes("corporate") || /corporate|credit/.test(name)) return { corp: 1 };
-    return { gov: 0.5, corp: 0.5 };
+    if (sub.includes("index-linked") || /inflation/.test(name)) return fixed({ inflationLinked: 1 });
+    if (sub.includes("emerging") || /emerging/.test(name)) return fixed({ emBonds: 1 });
+    if (sub.includes("government") || /gilt|government|sovereign/.test(name)) return { ...fixed({ gov: 1 }), bondMixes: ["gov"] };
+    if (sub.includes("corporate") || /corporate|credit/.test(name)) return fixed({ corp: 1 });
+    return fixed({ gov: 0.5, corp: 0.5 });
   }
 
-  if (sub.includes("defensive")) return mix(0.25);
-  if (sub.includes("balanced")) return mix(0.5);
-  if (sub.includes("aggressive")) return mix(0.75);
+  // Managed funds: the subcategory states the share band.
+  const managed = (min: number, max: number, prior: number): FitSpace => ({
+    equityIds: GLOBAL_EQUITY,
+    shareMin: min,
+    shareMax: max,
+    sharePrior: prior,
+    bondMixes: ["gov-corp", "gov", "corp", "cash"],
+  });
+  if (sub.includes("defensive")) return managed(0, 0.35, 0.25);
+  if (sub.includes("balanced")) return managed(0.35, 0.65, 0.5);
+  if (sub.includes("aggressive")) return managed(0.65, 1, 0.75);
 
   // Lifecycle, specialist, fund-of-funds, structured and alternative funds:
-  // by risk rating. Risk 1 is cash-like.
-  if (risk === 1) return { cash: 1 };
-  return mix(EQUITY_BY_RISK[risk]);
+  // anywhere, pulled towards the share that matches the risk rating.
+  if (risk === 1) return fixed({ cash: 1 });
+  return managed(0, 1, EQUITY_BY_RISK[risk]);
+}
+
+/** The blend a fund starts from before any fit: its most likely mix. */
+export function defaultBlend(space: FitSpace): BenchmarkWeights {
+  return space.fixed ?? mix(space.sharePrior, space.equityIds[0], space.bondMixes[0]);
+}
+
+export type MatchQuality = "close" | "fair" | "rough";
+
+/** A fund's fitted tracking, as stored by the daily job and served with the catalogue. */
+export interface FundTracking {
+  weights: BenchmarkWeights;
+  /** How far the blend's past returns were from the fund's, in % a year (root-mean-square). */
+  errorPp: number | null;
+  quality: MatchQuality | null;
+}
+
+/** What a fund is tracked against: its fitted blend when there is one, else the rule-based default. */
+export function benchmarkFor(fund: Fund): BenchmarkWeights {
+  return fund.tracking?.weights && Object.keys(fund.tracking.weights).length
+    ? fund.tracking.weights
+    : defaultBlend(fitSpaceFor(fund));
 }
 
 /** "75% global shares · 25% euro bonds" — for showing what a holding moves with. */

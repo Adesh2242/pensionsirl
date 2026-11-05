@@ -49,6 +49,8 @@ export interface Fund {
   missingReturns?: ReturnPeriod[];
   /** True for funds from the live catalog, as opposed to the illustrative demo set. */
   live?: boolean;
+  /** Which markets the fund's estimates follow, fitted to its own returns (lib/portfolio/fit.ts). */
+  tracking?: import("@/lib/portfolio/market").FundTracking;
 }
 
 export type ReturnPeriod = "1y" | "3y" | "5y";

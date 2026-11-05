@@ -17,10 +17,16 @@ export async function GET(request: Request) {
   const requested = new URL(request.url).searchParams.get("from") ?? "";
   const tenYearsAgo = new Date(Date.now() - 3653 * 86_400_000).toISOString().slice(0, 10);
   const from = /^\d{4}-\d{2}-\d{2}$/.test(requested) && requested > tenYearsAgo ? requested : tenYearsAgo;
+  // Only the markets asked for (?ids=world,gov), or all of them.
+  const idsParam = new URL(request.url).searchParams.get("ids");
+  const wanted = idsParam
+    ? idsParam.split(",").filter((id): id is BenchmarkId => id in BENCHMARKS)
+    : (Object.keys(BENCHMARKS) as BenchmarkId[]);
+  const symbols = wanted.map((id) => BENCHMARKS[id].symbol);
   // A day earlier, so the first day's move has a starting price.
   const rows = await sql<{ symbol: string; price_date: Date; close: string }[]>`
     select symbol, price_date, close from benchmark_prices
-    where price_date >= (${from}::date - interval '7 days')
+    where price_date >= (${from}::date - interval '7 days') and symbol = any(${symbols})
     order by symbol, price_date`;
   const market: MarketData = {};
   for (const r of rows) {
