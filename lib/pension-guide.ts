@@ -71,3 +71,54 @@ export const RETIREMENT = {
   ],
   prsaLatestAge: 75,
 } as const;
+
+/** The official pages behind the guide, for the "official links" list at the bottom of the page. */
+export const OFFICIAL_LINKS: { topic: string; links: { title: string; site: string; href: string; what: string }[] }[] = [
+  {
+    topic: "State Pension",
+    links: [
+      { title: "State Pension (Contributory)", site: "Citizens Information", href: SOURCES.spc, what: "Who qualifies, PRSI needed, how the rate is worked out." },
+      { title: "State Pension (Contributory) service", site: "gov.ie", href: SOURCES.spcGov, what: "The Department of Social Protection's page, and how to apply." },
+      { title: "Deferring your State Pension", site: "Citizens Information", href: SOURCES.spcDeferral, what: "Starting it later, up to 70, for a higher weekly rate." },
+      { title: "State Pension (Non-Contributory)", site: "Citizens Information", href: SOURCES.spnc, what: "The means-tested pension and how the means test works." },
+      { title: "Social welfare rates 2026", site: "Citizens Information", href: SOURCES.welfareRates2026, what: "Every weekly payment rate for this year." },
+      { title: "Social welfare changes in Budget 2027", site: "Citizens Information", href: SOURCES.budget2027, what: "What changes from January 2027." },
+    ],
+  },
+  {
+    topic: "Auto-enrolment",
+    links: [
+      { title: "Auto-enrolment pension", site: "Citizens Information", href: SOURCES.autoEnrolment, what: "Who is enrolled, contributions, opting out." },
+      { title: "MyFutureFund", site: "myfuturefund.ie", href: SOURCES.myFutureFund, what: "The official auto-enrolment scheme and your account." },
+    ],
+  },
+  {
+    topic: "Workplace and personal pensions",
+    links: [
+      { title: "Introduction to pensions", site: "Citizens Information", href: SOURCES.introduction, what: "A short overview of every type of pension." },
+      { title: "Occupational pensions", site: "Citizens Information", href: SOURCES.occupational, what: "Pensions through your job: DB, DC and your rights." },
+      { title: "What are my pension options?", site: "Pensions Authority", href: SOURCES.pensionOptions, what: "Your choices at retirement, explained by the regulator." },
+      { title: "Additional voluntary contributions (AVCs)", site: "Pensions Authority", href: SOURCES.avcs, what: "Paying extra into a workplace pension." },
+      { title: "PRSAs", site: "Revenue", href: SOURCES.prsa, what: "Personal Retirement Savings Accounts and their tax rules." },
+    ],
+  },
+  {
+    topic: "Tax and retirement",
+    links: [
+      { title: "Tax relief limits on pension contributions", site: "Revenue", href: SOURCES.taxReliefLimits, what: "The age-related limits and the €115,000 earnings cap." },
+      { title: "Tax relief on pensions", site: "Citizens Information", href: SOURCES.taxReliefCI, what: "How relief works, in plain English." },
+      { title: "Taxation of retirement lump sums", site: "Revenue", href: SOURCES.lumpSums, what: "The €200,000 tax-free limit and the 20% band." },
+      { title: "ARFs and imputed distributions", site: "Revenue", href: SOURCES.arf, what: "How Approved Retirement Funds are taxed each year." },
+      { title: "Standard Fund Threshold (Form 787S)", site: "Revenue", href: SOURCES.sft, what: "The lifetime limit on tax-favoured pension savings." },
+    ],
+  },
+  {
+    topic: "Your records and help",
+    links: [
+      { title: "MyWelfare", site: "mywelfare.ie", href: "https://www.mywelfare.ie", what: "Check your PRSI record and apply for the State Pension." },
+      { title: "Citizens Information", site: "citizensinformation.ie", href: "https://www.citizensinformation.ie", what: "Free, independent information, by phone or in person." },
+      { title: "The Pensions Authority", site: "pensionsauthority.ie", href: "https://www.pensionsauthority.ie", what: "The pensions regulator: guides and consumer information." },
+      { title: "Financial Services and Pensions Ombudsman", site: "fspo.ie", href: "https://www.fspo.ie", what: "Make a complaint about a pension provider, free." },
+    ],
+  },
+];
