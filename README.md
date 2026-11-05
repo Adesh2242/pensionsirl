@@ -58,12 +58,23 @@ pnpm dev
 
 | Variable | Where | Purpose |
 |---|---|---|
-| `DATABASE_URL` | web, scrape | `${{Postgres.DATABASE_URL}}` on Railway |
+| `DATABASE_URL` | web, scrape, prices, reports | `${{Postgres.DATABASE_URL}}` on Railway |
 | `CONSENT_HASH_SALT` | web | Salt for hashing IPs in the cookie-consent log |
-| `NEXT_PUBLIC_SITE_URL` | web | Public address (metadata, sitemap, Google sign-in) |
+| `NEXT_PUBLIC_SITE_URL` | web, reports | Public address (metadata, sitemap, Google sign-in, links in emails) |
+| `EMAIL_API_KEY` | web, reports | Optional: Resend sending-only key for confirmation links and emailed reports |
+| `EMAIL_FROM` | web, reports | Optional: sender, default `PensionIQ <reports@pensionwise.ie>` |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | web | Optional: Google sign-in (redirect URI `<site>/auth/callback`) |
 | `GEMINI_API_KEY` | web | Optional: live AI suggestions |
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | web | Optional: rate limits shared across replicas |
+
+## Emailed reports
+
+Signed-in users can have their portfolio PDF emailed monthly, quarterly or yearly (on the
+1st), or send one now, from the portfolio page. Reports only go to a confirmed address
+(Google sign-ins count as confirmed; password accounts click an emailed link). The
+`reports` cron service runs `node dist/send-reports.mjs` daily; it claims each due schedule
+before sending, so a rerun never double-sends, and a failed send is retried the next day.
+Every email has a one-click unsubscribe link (`/unsubscribe`).
 
 ## Security & GDPR
 

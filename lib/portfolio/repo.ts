@@ -1,48 +1,13 @@
 import "server-only";
 import { requireSql } from "@/lib/db";
 import type { HoldingInput, TrackedFund } from "@/lib/types";
+import { HOLDING_COLUMNS as COLUMNS, toHolding, type HoldingRow as Row } from "@/lib/portfolio/holding-map";
 
 /**
  * Portfolio holdings in Postgres. Every query is filtered by the signed-in
  * user's id — the job row-level security did on Supabase — so one account
  * can never read or change another's holdings.
  */
-
-interface Row {
-  id: string;
-  fund_slug: string;
-  label: string | null;
-  start_value: string;
-  value_as_of: Date | string;
-  monthly_contribution: string;
-  employer_contribution: string;
-  amc_pct: string | null;
-  contribution_charge_pct: string;
-  policy_fee: string;
-  started_at: Date | string;
-  last_seen_at: Date;
-}
-
-const isoDate = (d: Date | string) => (typeof d === "string" ? d.slice(0, 10) : d.toISOString().slice(0, 10));
-
-function toHolding(r: Row): TrackedFund {
-  return {
-    id: r.id,
-    fundSlug: r.fund_slug,
-    label: r.label ?? undefined,
-    startValue: Number(r.start_value),
-    valueAsOf: isoDate(r.value_as_of),
-    monthlyContribution: Number(r.monthly_contribution),
-    employerContribution: Number(r.employer_contribution),
-    amcPct: r.amc_pct === null ? undefined : Number(r.amc_pct),
-    contributionChargePct: Number(r.contribution_charge_pct),
-    policyFee: Number(r.policy_fee),
-    startedAt: isoDate(r.started_at),
-    lastSeenAt: r.last_seen_at.toISOString(),
-  };
-}
-
-const COLUMNS = ["id", "fund_slug", "label", "start_value", "value_as_of", "monthly_contribution", "employer_contribution", "amc_pct", "contribution_charge_pct", "policy_fee", "started_at", "last_seen_at"];
 
 export async function listHoldings(userId: string): Promise<TrackedFund[]> {
   const sql = requireSql();

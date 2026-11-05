@@ -35,12 +35,13 @@ export async function GET(request: Request) {
     let [user] = await sql<{ id: string }[]>`select id from users where google_sub = ${profile.sub}`;
     if (!user && profile.emailVerified) {
       [user] = await sql<{ id: string }[]>`
-        update users set google_sub = ${profile.sub} where email = ${profile.email} and google_sub is null returning id`;
+        update users set google_sub = ${profile.sub}, email_verified_at = coalesce(email_verified_at, now())
+        where email = ${profile.email} and google_sub is null returning id`;
     }
     if (!user) {
       if (!profile.emailVerified) return fail;
       [user] = await sql<{ id: string }[]>`
-        insert into users (email, name, google_sub) values (${profile.email}, ${profile.name}, ${profile.sub})
+        insert into users (email, name, google_sub, email_verified_at) values (${profile.email}, ${profile.name}, ${profile.sub}, now())
         on conflict (email) do nothing returning id`;
     }
     if (!user) return fail;

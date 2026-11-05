@@ -7,6 +7,7 @@ import { PageIntro } from "@/components/editorial/page-intro";
 import { SectionLabel } from "@/components/editorial/section-label";
 import { AssetClassBadge } from "@/components/funds/asset-class-badge";
 import { RiskMeter } from "@/components/funds/risk-meter";
+import { EmailReports } from "@/components/portfolio/email-reports";
 import { HoldingDialog } from "@/components/portfolio/holding-dialog";
 import { PortfolioChart } from "@/components/portfolio/portfolio-chart";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -986,6 +987,7 @@ function PortfolioContent() {
                     }
                   />
                 </div>
+                <EmailReports horizon={horizon} real={real} verifiedParam={searchParams.get("email")} />
                 <Disclaimer kind="projection" className="mt-8 max-w-3xl" />
               </div>
 

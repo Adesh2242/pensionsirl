@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description: "How PensionIQ collects, uses and protects your data, and your rights under GDPR.",
 };
 
-const LAST_UPDATED = "2026-11-04";
+const LAST_UPDATED = "2026-11-05";
 
 const placeholder = "text-warning";
 
@@ -73,6 +73,12 @@ export default function PrivacyPage() {
                 financial information about you, so we treat it with care: only you can read it.
               </li>
               <li>
+                <strong>Report emails:</strong> only if you turn them on — how often you want them
+                (monthly, quarterly or yearly), when the next one is due and when the last was sent,
+                and whether you&apos;ve confirmed your email address. Each report is made fresh on our
+                server when it&apos;s sent; we don&apos;t keep a copy of the PDF.
+              </li>
+              <li>
                 <strong>Cookie choice:</strong> kept in your browser, and a copy on our server with
                 the time, your account (if signed in) and a salted, one-way hash of your IP address
                 — never the IP address itself.
@@ -95,6 +101,7 @@ export default function PrivacyPage() {
           <Section title="4. Why we use it, and our legal basis">
             <ul>
               <li>Account and portfolio — to provide the service you signed up for (contract, Art. 6(1)(b) GDPR).</li>
+              <li>Report emails — to send the reports you asked for, until you turn them off (your request; contract).</li>
               <li>Cookie-choice records — to show we respected your choice (legal obligation and legitimate interest).</li>
               <li>AI Suggestions — to answer the question you chose to ask (your request; contract).</li>
               <li>Technical logs — to keep the site secure and working (legitimate interest).</li>
@@ -111,11 +118,18 @@ export default function PrivacyPage() {
             <p>We do not sell your data or share it for marketing. These processors run the service for us:</p>
             <ul>
               <li>
-                <strong>Railway</strong> — hosts the website, its database and the weekly fund
-                update. All of them run in Railway&apos;s EU region (Amsterdam, Netherlands), so your
+                <strong>Railway</strong> — hosts the website, its database, the weekly fund
+                update and the daily price and report jobs. All of them run in Railway&apos;s EU region (Amsterdam, Netherlands), so your
                 account and portfolio are stored and processed in the EU. Railway Corporation is a US
                 company, so its staff may access systems from outside the EU for support and
                 operations.
+              </li>
+              <li>
+                <strong>Resend</strong> — sends our emails (address confirmations and the portfolio
+                reports you ask for) from its EU region (Ireland). An emailed report contains your
+                portfolio figures as a PDF attachment. Resend keeps delivery records, and the
+                emails themselves for a limited time, to run and secure its service. Resend is a US
+                company, so its staff may access systems from outside the EU.
               </li>
               <li>
                 <strong>Google sign-in</strong> — only if you choose &quot;continue with Google&quot;:
