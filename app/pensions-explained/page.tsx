@@ -1,4 +1,5 @@
-import type { Metadata } from "next";
+import { absoluteUrl, breadcrumbs, pageMetadata, SITE_NAME } from "@/lib/seo";
+import { JsonLd } from "@/components/seo/json-ld";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { PageIntro } from "@/components/editorial/page-intro";
@@ -14,11 +15,12 @@ import {
   STATE_PENSION,
 } from "@/lib/pension-guide";
 
-export const metadata: Metadata = {
-  title: "Irish Pensions Explained",
+export const metadata = pageMetadata({
+  title: "Irish Pensions Explained: State Pension, Auto-Enrolment, PRSAs & Tax Relief",
   description:
-    "How pensions work in Ireland, in plain English: the State Pension, auto-enrolment, workplace and personal pensions, tax relief and what happens when you retire. Based on official government sources.",
-};
+    "How pensions work in Ireland, in plain English: the State Pension, auto-enrolment (MyFutureFund), workplace pensions, PRSAs and AVCs, tax relief limits and what happens when you retire. Based on official government sources.",
+  path: "/pensions-explained",
+});
 
 const euro = (n: number, decimals = 0) =>
   `€${n.toLocaleString("en-IE", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
@@ -196,6 +198,28 @@ export default function PensionsExplainedPage() {
   const sp = STATE_PENSION;
   return (
     <>
+      <JsonLd
+        data={[
+          {
+            "@context": "https://schema.org",
+            "@type": "Article",
+            headline: "Irish pensions explained: State Pension, auto-enrolment, PRSAs and tax relief",
+            description:
+              "How pensions work in Ireland, in plain English, based on official government sources.",
+            inLanguage: "en-IE",
+            url: absoluteUrl("/pensions-explained"),
+            mainEntityOfPage: absoluteUrl("/pensions-explained"),
+            author: { "@type": "Organization", name: SITE_NAME, url: absoluteUrl("/") },
+            publisher: { "@type": "Organization", name: SITE_NAME, url: absoluteUrl("/") },
+            about: [
+              { "@type": "Thing", name: "State Pension (Ireland)" },
+              { "@type": "Thing", name: "Auto-enrolment pension (Ireland)" },
+              { "@type": "Thing", name: "Pension tax relief (Ireland)" },
+            ],
+          },
+          breadcrumbs([{ name: "Irish pensions explained", path: "/pensions-explained" }]),
+        ]}
+      />
       <PageIntro
         label="pensions explained"
         lines={["irish pensions,", "in plain english."]}

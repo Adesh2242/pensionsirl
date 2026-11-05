@@ -7,7 +7,8 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/settings"],
+        // Private pages and APIs: nothing there for search results.
+        disallow: ["/api/", "/portfolio", "/settings", "/auth/", "/verify-email", "/unsubscribe"],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,

@@ -1,13 +1,17 @@
+import { breadcrumbs, pageMetadata } from "@/lib/seo";
+import { JsonLd } from "@/components/seo/json-ld";
 import Link from "next/link";
 import { providers } from "@/lib/mock-data";
 import { PageIntro } from "@/components/editorial/page-intro";
 import { Reveal } from "@/components/editorial/reveal";
 import { SectionLabel } from "@/components/editorial/section-label";
 
-export const metadata = {
-  title: "How it Works",
-  description: "How PensionIQ sources its data and calculates retirement projections.",
-};
+export const metadata = pageMetadata({
+  title: "How It Works",
+  description:
+    "Where PensionIQ’s fund data comes from, how returns, charges and projections are worked out, and how portfolio values are kept current between statements.",
+  path: "/how-it-works",
+});
 
 const faqs = [
   {
@@ -53,6 +57,7 @@ const steps = [
 export default function HowItWorksPage() {
   return (
     <>
+      <JsonLd data={breadcrumbs([{ name: "How it works", path: "/how-it-works" }])} />
       <PageIntro
         label="how it works"
         lines={["where the numbers", "come from."]}
