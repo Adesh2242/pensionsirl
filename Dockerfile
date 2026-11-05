@@ -3,8 +3,8 @@
 #   web      node server.js              (Next.js standalone server)
 #   migrate  node dist/migrate.mjs       (pre-deploy: applies db/migrations)
 #   scrape   node dist/scrape-funds.mjs  (weekly cron service)
-#   prices   node dist/update-benchmarks.mjs (daily cron service)
-#   reports  node dist/send-reports.mjs  (daily cron service: emailed reports)
+#   prices   node dist/update-benchmarks.mjs, then dist/send-reports.mjs
+#            (daily cron service: market prices, then emailed reports)
 #
 # Builds without any secrets: nothing touches the database at build time.
 

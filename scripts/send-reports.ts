@@ -1,6 +1,6 @@
 /**
- * Daily: emails every portfolio report that's due. Runs on Railway as the
- * `reports` cron service (`node dist/send-reports.mjs`, each morning);
+ * Daily: emails every portfolio report that's due. Runs on Railway in the
+ * `prices` cron service, straight after the price update (21:30 UTC daily);
  * locally `pnpm reports`.
  *
  * Each due schedule is claimed first (its next date moved on), then sent,
