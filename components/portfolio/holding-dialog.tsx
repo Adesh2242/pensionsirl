@@ -21,6 +21,7 @@ import {
 import type { Fund, HoldingInput, TrackedFund } from "@/lib/types";
 import { returnFor } from "@/lib/fund-returns";
 import { ASSUMED_AMC_PCT } from "@/lib/portfolio/projection";
+import { benchmarkFor, describeBenchmark } from "@/lib/portfolio/market";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -355,15 +356,10 @@ export function HoldingDialog({
 
             {fund && (
               <p className="lower font-mono text-[0.7rem] leading-relaxed text-muted-foreground">
-                {returnFor(fund, "1y") === null ? (
-                  <>this fund has no 1-year history yet, so it&apos;s tracked with no growth, less its{" "}</>
-                ) : (
-                  <>
-                    tracked at this fund&apos;s 1yr return ({fund.oneYearReturn >= 0 ? "+" : ""}
-                    {fund.oneYearReturn.toFixed(1)}%), less its{" "}
-                  </>
-                )}
-                charges.
+                kept current daily with the markets this fund invests in —{" "}
+                <span className="text-foreground">{describeBenchmark(benchmarkFor(fund))}</span> — less
+                its charges. where prices aren&apos;t available, it grows at the fund&apos;s 1-year return
+                {returnFor(fund, "1y") === null ? " (none yet, so no growth)" : ""}.
               </p>
             )}
 

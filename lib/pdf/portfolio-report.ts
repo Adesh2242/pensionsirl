@@ -245,7 +245,7 @@ export function buildPortfolioReport(input: PortfolioReportInput): Report {
   report.ensure(100);
   report.section("How these figures are worked out");
   for (const line of [
-    "Value now: each holding's statement value, grown month by month since the statement date at the fund's latest 1-year return, plus your contributions, less charges.",
+    "Value now: each holding's statement value, moved day by day since the statement date with market indices matching the fund's investments (or its 1-year return where no prices exist), plus your contributions, less charges. An estimate, not the fund's unit price.",
     "Projection: each fund grows at its average yearly return over the last 5 years (3 or 1 if younger), less its annual charge. Contribution charges and policy fees are taken as they fall due.",
     `Range: ±${RISK_SPREAD_PER_POINT}% a year for each point of the fund's 1-7 risk rating - wider for equity, narrow for cash.`,
     `Contributions stay as they are today. "Today's money" deflates by ${INFLATION_PCT}% a year inflation.`,

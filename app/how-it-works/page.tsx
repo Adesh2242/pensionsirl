@@ -15,6 +15,10 @@ const faqs = [
     a: "Provider names, fund names, asset classes, risk ratings, and 1/3/5/10-year return figures are sourced weekly from each provider's public fund centre and the National Pension Helpline fund explorer (funds.nationalpensionhelpline.ie) via scripts/scrape-funds.ts. NAV isn't published by this source — only returns are.",
   },
   {
+    q: "how does my portfolio value change between statements?",
+    a: "The fund data source publishes returns, not daily unit prices, so each holding is moved day by day with market indices that match what the fund invests in — for example global shares for a global equity fund, or a share/bond mix for a managed fund — using end-of-day prices of euro-priced index ETFs (via Yahoo Finance), less the fund's charge, plus your contributions. It's an estimate: close for index funds, rougher for actively managed ones. Update a holding from your latest statement to reset it to the exact figure.",
+  },
+  {
     q: "how is the tax relief calculated?",
     a: "The calculator uses Revenue.ie's age-related percentage limits on net relevant earnings (15% under 30, rising to 40% at 60+) and the €115,000 earnings cap for relief purposes, applied to your marginal tax rate.",
   },

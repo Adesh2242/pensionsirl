@@ -67,7 +67,7 @@ export default function TermsPage() {
 
           <Section title="3. Projections, estimates and the calculator">
             <ul>
-              <li>Portfolio values between statements are estimates, grown from your statement value at each fund&apos;s latest 1-year return, less charges.</li>
+              <li>Portfolio values between statements are estimates: your statement value moved day by day with market indices that broadly match what each fund invests in (for example global shares or euro bonds), less charges. They are not your fund&apos;s actual unit price and can differ from it, especially for actively managed or multi-asset funds. Index prices are delayed, end-of-day figures from public market data.</li>
               <li>Projections assume each fund keeps growing at its 5-year average (or shorter history), less charges, with contributions unchanged. Real returns will differ, and can be negative.</li>
               <li>&quot;Today&apos;s money&quot; figures assume 2% a year inflation.</li>
               <li>{WARNING_TAX}</li>
