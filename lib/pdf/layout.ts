@@ -1,7 +1,7 @@
 /**
- * Shared page layout for PensionIQ's PDF reports, drawn with jsPDF in the
- * visitor's browser: nothing is uploaded, so personal figures never leave
- * their device. A4 portrait, millimetres. Everything is vector — text stays
+ * Shared page layout for PensionIQ's PDF reports, drawn with jsPDF. Downloads
+ * are drawn in the visitor's browser; emailed reports (lib/reports/) are drawn
+ * on the server by the same code. A4 portrait, millimetres. Everything is vector — text stays
  * selectable and charts stay sharp at any zoom or print size.
  *
  * jsPDF's built-in Helvetica covers Windows-1252 only, so text goes through

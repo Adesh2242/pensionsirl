@@ -59,6 +59,11 @@ export default function SettingsPage() {
           .then((r) => (r.ok ? r.json() : { records: [] }))
           .then((d: { records?: unknown[] }) => d.records ?? [])
           .catch(() => []);
+    // Report-email settings (frequency, next/last send, confirmed address). Best effort.
+    const reportEmails = await fetch("/api/reports")
+      .then((r) => (r.ok ? r.json() : { settings: null }))
+      .then((d: { settings?: unknown }) => d.settings ?? null)
+      .catch(() => null);
     try {
       trackedFunds = await listTrackedFunds();
     } catch (err) {
@@ -71,10 +76,11 @@ export default function SettingsPage() {
     const payload = {
       exportedAt: new Date().toISOString(),
       about:
-        "Everything PensionIQ holds about you: your account, your portfolio holdings (with any charges you entered), your cookie choice in this browser and the consent records stored on our server. Data is stored on Railway in the EU (Amsterdam, Netherlands).",
+        "Everything PensionIQ holds about you: your account, your portfolio holdings (with any charges you entered), your report-email settings, your cookie choice in this browser and the consent records stored on our server. Data is stored on Railway in the EU (Amsterdam, Netherlands).",
       user,
       cookieConsent: consent,
       consentRecords,
+      reportEmails,
       portfolioHoldings: trackedFunds,
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
