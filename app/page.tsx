@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { JsonLd } from "@/components/seo/json-ld";
+import { SITE_NAME, absoluteUrl } from "@/lib/seo";
 import { Counter } from "@/components/editorial/counter";
 import { Field } from "@/components/editorial/field";
 import { HeroCorners } from "@/components/editorial/hero-corners";
@@ -71,6 +73,26 @@ export default async function Home() {
 
   return (
     <>
+      <JsonLd
+        data={[
+          {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            name: SITE_NAME,
+            url: absoluteUrl("/"),
+            inLanguage: "en-IE",
+            description: "Compare Irish pension funds, estimate your retirement pot and track your pension portfolio.",
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            name: SITE_NAME,
+            url: absoluteUrl("/"),
+            logo: absoluteUrl("/apple-icon"),
+            areaServed: "IE",
+          },
+        ]}
+      />
       {/* Hero */}
       <Field className="inset-frame flex min-h-[94svh] flex-col justify-between" tone="teal">
         <HeroCorners left="your irish pensions, in one place" right="free · track every pension you hold" />

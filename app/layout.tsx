@@ -20,11 +20,14 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "PensionIQ — Irish Pension Fund Explorer & Retirement Calculator",
+    default: "PensionIQ — Compare Irish Pension Funds & Pension Calculator",
     template: "%s | PensionIQ",
   },
   description:
-    "Compare Irish pension funds across 10 providers, project your retirement pot with Irish Revenue tax relief rules, and get AI-powered fund suggestions.",
+    "Compare Irish pension funds from 10 providers by returns, charges and risk, estimate your retirement pot with Revenue's tax relief rules, and track your own pension portfolio. Free.",
+  applicationName: "PensionIQ",
+  alternates: { canonical: "/" },
+  category: "finance",
   keywords: [
     "pension Ireland",
     "Irish pension funds",
@@ -32,12 +35,16 @@ export const metadata: Metadata = {
     "PRSA",
     "retirement planning Ireland",
     "pension tax relief Ireland",
+    "AVC",
+    "auto-enrolment Ireland",
+    "pension fund returns Ireland",
+    "pension charges Ireland",
   ],
   openGraph: {
-    title: "PensionIQ — Irish Pension Fund Explorer & Retirement Calculator",
+    title: "PensionIQ — Compare Irish Pension Funds & Pension Calculator",
     description:
-      "Compare Irish pension funds, project your retirement pot, and get AI-powered fund suggestions.",
-    url: SITE_URL,
+      "Compare Irish pension funds by returns, charges and risk, estimate your retirement pot, and track your pension portfolio.",
+    url: "/",
     siteName: "PensionIQ",
     locale: "en_IE",
     type: "website",
@@ -45,9 +52,9 @@ export const metadata: Metadata = {
   appleWebApp: { title: "PensionIQ" },
   twitter: {
     card: "summary_large_image",
-    title: "PensionIQ — Irish Pension Fund Explorer & Retirement Calculator",
+    title: "PensionIQ — Compare Irish Pension Funds & Pension Calculator",
     description:
-      "Compare Irish pension funds, project your retirement pot, and get AI-powered fund suggestions.",
+      "Compare Irish pension funds by returns, charges and risk, estimate your retirement pot, and track your pension portfolio.",
   },
 };
 

@@ -1,12 +1,15 @@
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { ChatInterface } from "@/components/ai/chat-interface";
 import { PageIntro } from "@/components/editorial/page-intro";
 import { Disclaimer } from "@/components/legal/disclaimer";
 
-export const metadata = {
-  title: "AI Suggestions",
-  description: "Get AI-powered Irish pension fund suggestions based on your risk profile.",
-};
+export const metadata = pageMetadata({
+  title: "AI Pension Fund Suggestions",
+  description:
+    "Describe what you want from a pension fund and get Irish pension funds that match, with their returns, charges and risk ratings.",
+  path: "/ai-suggestions",
+});
 
 export default function AiSuggestionsPage() {
   return (

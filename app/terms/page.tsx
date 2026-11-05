@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { PageIntro } from "@/components/editorial/page-intro";
@@ -11,10 +11,12 @@ import {
   WARNING_VALUE,
 } from "@/lib/disclaimers";
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
   title: "Terms & Disclaimer",
-  description: "PensionIQ is an information tool, not financial advice. The terms of using it.",
-};
+  description:
+    "PensionIQ is an information tool, not financial advice. The terms of using it.",
+  path: "/terms",
+});
 
 const LAST_UPDATED = "2026-11-03";
 

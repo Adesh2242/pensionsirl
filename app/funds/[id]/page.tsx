@@ -14,6 +14,8 @@ import { getFundBySlug, getLastScrapeTime } from "@/lib/data/funds.server";
 import { formatAmc, formatLastUpdated } from "@/lib/utils";
 import { returnFor } from "@/lib/fund-returns";
 import { Disclaimer } from "@/components/legal/disclaimer";
+import { JsonLd } from "@/components/seo/json-ld";
+import { breadcrumbs, pageMetadata } from "@/lib/seo";
 
 type Params = Promise<{ id: string }>;
 
@@ -26,10 +28,24 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const { id } = await params;
   const fund = await getFundBySlug(id);
   if (!fund) return {};
-  return {
-    title: `${fund.name} — ${fund.providerName}`,
-    description: `${fund.name} from ${fund.providerName}: ${fund.assetClass}, risk ${fund.riskRating}/7, ${formatAmc(fund.amc)} AMC.`,
-  };
+  const five = returnFor(fund, "5y");
+  const one = returnFor(fund, "1y");
+  const pct = (v: number) => `${v >= 0 ? "+" : ""}${v.toFixed(1)}%`;
+  const performance =
+    five !== null ? `${pct(five)} a year over 5 years` : one !== null ? `${pct(one)} over the last year` : null;
+  return pageMetadata({
+    title: `${fund.name} (${fund.providerName}): Returns, Charges & Risk`,
+    description: [
+      `${fund.name} from ${fund.providerName}: ${fund.assetClass.toLowerCase()} pension fund, risk ${fund.riskRating}/7`,
+      fund.amc !== undefined ? `annual charge ${formatAmc(fund.amc)}` : null,
+      performance ? `returned ${performance}` : null,
+    ]
+      .filter(Boolean)
+      .join(", ")
+      .concat(". See its full track record and compare it with other Irish pension funds."),
+    path: `/funds/${fund.slug}`,
+    image: `/funds/${fund.slug}/opengraph-image`,
+  });
 }
 
 export default async function FundDetailPage({ params }: { params: Params }) {
@@ -62,6 +78,12 @@ export default async function FundDetailPage({ params }: { params: Params }) {
 
   return (
     <>
+      <JsonLd
+        data={breadcrumbs([
+          { name: "Pension funds", path: "/funds" },
+          { name: fund.name, path: `/funds/${fund.slug}` },
+        ])}
+      />
       <Field className="inset-frame flex flex-col justify-end" tone="slate">
         <HeroCorners
           left={fund.providerName}

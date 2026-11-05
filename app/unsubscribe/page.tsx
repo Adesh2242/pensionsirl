@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata: Metadata = { title: "Stop report emails", robots: { index: false } };
+export const metadata: Metadata = { title: "Stop report emails", robots: { index: false, follow: false } };
 
 /**
  * Where the "stop these emails" link lands. Unsubscribing takes a button

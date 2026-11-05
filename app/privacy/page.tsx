@@ -1,12 +1,14 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { PageIntro } from "@/components/editorial/page-intro";
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
   title: "Privacy Policy",
-  description: "How PensionIQ collects, uses and protects your data, and your rights under GDPR.",
-};
+  description:
+    "How PensionIQ collects, uses and protects your data, and your rights under GDPR.",
+  path: "/privacy",
+});
 
 const LAST_UPDATED = "2026-11-05";
 
