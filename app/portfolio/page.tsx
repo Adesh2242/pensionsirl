@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth-context";
 import { useFunds } from "@/lib/hooks/use-funds";
 import { useMarket } from "@/lib/hooks/use-market";
-import { marketAsOf, type MarketData } from "@/lib/portfolio/market";
+import { benchmarkFor, marketAsOf, type MarketData } from "@/lib/portfolio/market";
 import {
   addTrackedFund,
   listTrackedFunds,
@@ -225,7 +225,27 @@ function HoldingRow({
         , kept current daily{" "}
         {tracking.covered ? (
           <>
-            with <span className="text-foreground">{tracking.label}</span>, less charges.
+            with <span className="text-foreground">{tracking.label}</span>, less charges
+            {tracking.quality && (
+              <>
+                {" "}
+                (
+                <span
+                  className={
+                    tracking.quality === "close"
+                      ? "text-success"
+                      : tracking.quality === "fair"
+                        ? "text-foreground"
+                        : "text-warning"
+                  }
+                  title="How closely this blend of markets matched the fund's own returns over the last 1, 3 and 5 years"
+                >
+                  {tracking.quality} match to this fund&apos;s past returns
+                </span>
+                )
+              </>
+            )}
+            .
           </>
         ) : (
           <>at this fund&apos;s 1-year return, less charges.</>
@@ -493,7 +513,16 @@ function PortfolioContent() {
     const dates = (tracked ?? []).flatMap((t) => [t.valueAsOf, t.lastSeenAt.slice(0, 10)]);
     return dates.length ? dates.sort()[0] : null;
   }, [tracked]);
-  const { market, ready: marketReady } = useMarket(marketFrom);
+  // Only the markets these holdings follow.
+  const marketIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const t of tracked ?? []) {
+      const fund = fundsBySlug.get(t.fundSlug);
+      if (fund) for (const id of Object.keys(benchmarkFor(fund))) ids.add(id);
+    }
+    return [...ids].sort().join(",");
+  }, [tracked, fundsBySlug]);
+  const { market, ready: marketReady } = useMarket(marketFrom, marketIds);
   const pricesAsOf = market ? marketAsOf(market) : null;
 
   const positions = useMemo<Position[]>(
@@ -546,7 +575,7 @@ function PortfolioContent() {
   }
 
   // Wait for prices too, so values don't jump once they arrive.
-  if (authLoading || !user || tracked === null || (tracked.length > 0 && !marketReady && !loadError)) {
+  if (authLoading || !user || tracked === null || (marketIds !== "" && !marketReady && !loadError)) {
     return (
       <div className="container-page max-w-4xl px-6 py-32 md:px-10">
         {loadError ? (

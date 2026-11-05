@@ -20,6 +20,9 @@ interface FundRow {
   three_year_return: string | null;
   five_year_return: string | null;
   ten_year_return: string | null;
+  tracking_weights: Record<string, number> | null;
+  tracking_error: string | null;
+  tracking_quality: "close" | "fair" | "rough" | null;
 }
 
 const num = (v: string | null) => (v === null ? null : Number(v));
@@ -58,6 +61,13 @@ function mapFund(row: FundRow): Fund {
     tenYearReturn: ten === null ? undefined : annualise(ten, 10),
     missingReturns,
     live: true,
+    tracking: row.tracking_weights
+      ? {
+          weights: row.tracking_weights,
+          errorPp: row.tracking_error === null ? null : Number(row.tracking_error),
+          quality: row.tracking_quality,
+        }
+      : undefined,
   };
 }
 
@@ -77,10 +87,12 @@ export async function loadCatalog(): Promise<Catalog | null> {
     sql<FundRow[]>`
       select f.slug, f.provider_slug, p.name as provider_name, f.name, f.asset_class, f.risk_rating,
              f.amc, f.subcategory, f.sfdr_article, f.manager, f.description,
-             l.one_year_return, l.three_year_return, l.five_year_return, l.ten_year_return
+             l.one_year_return, l.three_year_return, l.five_year_return, l.ten_year_return,
+             t.weights as tracking_weights, t.error_pp as tracking_error, t.quality as tracking_quality
       from funds f
       left join providers p on p.slug = f.provider_slug
       left join fund_prices_latest l on l.fund_id = f.id
+      left join fund_tracking t on t.fund_slug = f.slug
       order by f.name`,
     sql<{ slug: string; name: string }[]>`select slug, name from providers order by name`,
     sql<{ finished_at: Date }[]>`

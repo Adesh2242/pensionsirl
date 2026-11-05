@@ -130,7 +130,7 @@ export function trackingFor(holding: TrackedFund, fund: Fund, market?: MarketDat
   const weights = benchmarkFor(fund);
   const covered =
     !!market && blendedReturn(weights, market, holding.valueAsOf, holding.valueAsOf) !== null;
-  return { weights, label: describeBenchmark(weights), covered };
+  return { weights, label: describeBenchmark(weights), covered, quality: fund.tracking?.quality ?? null };
 }
 
 /**
