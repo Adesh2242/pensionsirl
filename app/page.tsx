@@ -102,6 +102,12 @@ export default async function Home() {
             >
               or explore all {funds.length} funds
             </Link>
+            <Link
+              href="/pensions-explained"
+              className="lower link-underline text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              new to pensions? start here
+            </Link>
           </div>
 
           <div className="mt-12 grid gap-6 border-t border-border pt-8 sm:grid-cols-3">

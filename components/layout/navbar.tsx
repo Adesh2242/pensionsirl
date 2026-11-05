@@ -14,6 +14,7 @@ const primaryLinks = [
 ] as const;
 
 const secondaryLinks = [
+  { href: "/pensions-explained", label: "guide" },
   { href: "/calculator", label: "calculator" },
   { href: "/ai-suggestions", label: "ai" },
 ] as const;
@@ -25,6 +26,7 @@ const allLinks = [
   { href: "/compare", label: "compare" },
   { href: "/calculator", label: "calculator" },
   { href: "/ai-suggestions", label: "ai suggestions" },
+  { href: "/pensions-explained", label: "pensions explained" },
   { href: "/how-it-works", label: "how it works" },
 ] as const;
 

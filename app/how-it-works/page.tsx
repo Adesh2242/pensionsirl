@@ -24,7 +24,7 @@ const faqs = [
   },
   {
     q: "what happens to my data?",
-    a: "In demo mode, accounts and saved preferences live only in your browser's local storage — nothing is sent to a server. See Settings for data export and deletion.",
+    a: "Your account and portfolio are stored in the EU (Amsterdam) and only you can see them. Settings lets you export everything or delete your account; see the privacy policy for details.",
   },
 ];
 
