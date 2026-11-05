@@ -8,6 +8,7 @@ import { EARNINGS_CAP, ageRelatedLimitPct } from "@/lib/calculations";
 import {
   AUTO_ENROLMENT,
   GUIDE_CHECKED,
+  OFFICIAL_LINKS,
   RETIREMENT,
   SOURCES,
   STATE_PENSION,
@@ -33,6 +34,7 @@ const contents = [
   { id: "first-steps", label: "first steps" },
   { id: "glossary", label: "glossary" },
   { id: "help", label: "where to get help" },
+  { id: "official-links", label: "official links" },
 ];
 
 function Section({
@@ -541,6 +543,49 @@ export default function PensionsExplainedPage() {
                 ]}
               />
             </Section>
+
+            {/* ── 11. Official links ── */}
+            <section id="official-links" className="scroll-mt-28 border-t border-border pt-12 md:pt-16">
+              <SectionLabel>official links</SectionLabel>
+              <h2 className="lower mt-8 max-w-3xl font-heading text-3xl tracking-tight md:text-5xl">
+                check it yourself.
+              </h2>
+              <p className="mt-6 max-w-2xl text-[0.95rem] leading-relaxed text-muted-foreground">
+                Every rule on this page comes from these official government pages. They&apos;re
+                updated whenever the rules change, so check them for the latest figures — especially
+                after each Budget in October.
+              </p>
+              <div className="mt-12 space-y-12">
+                {OFFICIAL_LINKS.map((group) => (
+                  <div key={group.topic}>
+                    <h3 className="lower font-mono text-xs text-primary">{group.topic}</h3>
+                    <ul className="mt-4 grid border-t border-border sm:grid-cols-2 lg:grid-cols-3">
+                      {group.links.map((link) => (
+                        <li key={link.href} className="border-b border-border">
+                          <a
+                            href={link.href}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="group flex h-full flex-col gap-1.5 py-5 pr-6 transition-colors"
+                          >
+                            <span className="flex items-baseline justify-between gap-3 font-medium text-foreground group-hover:text-primary">
+                              {link.title}
+                              <span aria-hidden className="shrink-0 text-muted-foreground group-hover:text-primary">
+                                ↗
+                              </span>
+                            </span>
+                            <span className="text-sm leading-relaxed text-muted-foreground">{link.what}</span>
+                            <span className="lower mt-1 font-mono text-[0.7rem] text-muted-foreground/80">
+                              {link.site}
+                            </span>
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </section>
           </div>
 
           <div className="mt-24 max-w-3xl border-t border-border pt-8">
