@@ -12,6 +12,7 @@ const tools = [
 ] as const;
 
 const about = [
+  { href: "/pensions-explained", label: "irish pensions explained" },
   { href: "/how-it-works", label: "how it works" },
   { href: "/privacy", label: "privacy policy" },
   { href: "/terms", label: "terms & disclaimer" },
