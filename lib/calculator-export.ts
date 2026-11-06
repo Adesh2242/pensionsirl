@@ -1,7 +1,7 @@
 import type { CsvRow } from "@/lib/csv";
 import { money, pct } from "@/lib/csv";
 import { disclaimerLines } from "@/lib/disclaimers";
-import { yearlyWithdrawal } from "@/lib/calculations";
+import { yearlyIncome } from "@/lib/calculations";
 import type { CalculatorInput, CalculatorResult } from "@/lib/types";
 
 const yesNo = (v: boolean) => (v ? "Yes" : "No");
@@ -31,11 +31,10 @@ export function calculatorCsvRows(input: CalculatorInput, result: CalculatorResu
     ["Annual charge (%)", pct(input.fundAmcPct)],
     ["Inflation (% a year)", pct(input.inflationPct)],
     ["Take 25% lump sum", yesNo(input.takeLumpSum)],
-    [`Draw from pot (EUR a ${input.withdrawalPer}, today's money)`, money(input.withdrawalAmount)],
-    ["Withdrawal rises with inflation", yesNo(input.withdrawalIndexed)],
+    [`Income wanted, all sources (EUR a ${input.incomePer}, today's money)`, money(input.incomeAmount)],
+    ["Income rises with inflation", yesNo(input.incomeIndexed)],
     ["Include State Pension", yesNo(input.includeStatePension)],
     ["State Pension (EUR a week, today's money)", money(input.statePensionWeekly)],
-    ["Cover the gap until the State Pension", yesNo(input.bridgeTopUp)],
     ["Other income (EUR a year, today's money)", money(input.otherIncomeYearly)],
     ["Make it last until age", input.planToAge],
     [],
@@ -46,10 +45,10 @@ export function calculatorCsvRows(input: CalculatorInput, result: CalculatorResu
     ["Left invested to draw from (EUR)", money(result.drawdownPot), today(result.drawdownPot)],
     ["Paid in by retirement, incl. today's pot (EUR)", money(result.totalContributions)],
     ["Charges by retirement (EUR)", money(result.totalFeesDrag)],
-    ["Planned withdrawal (EUR a year, today's money)", "", money(yearlyWithdrawal(input))],
+    ["Income wanted (EUR a year, today's money)", "", money(yearlyIncome(input))],
     ["Pot runs out at age", result.runsOutAge ?? "Lasts beyond 100"],
     [`If returns were 2% a year lower, runs out at age`, result.cautiousRunsOutAge ?? "Lasts beyond 100"],
-    [`Most you can draw to last until ${input.planToAge} (EUR a year)`, "", money(result.sustainableYearly)],
+    [`Income that lasts until ${input.planToAge}, all sources (EUR a year)`, "", money(result.sustainableYearly)],
     ["Years before the State Pension on the pot alone", result.bridgeYears],
     ["Revenue's ARF minimum exceeds the plan from age", result.minimumFromAge ?? "Never"],
     ["Final pay (EUR a year)", "", money(result.finalSalaryToday)],
@@ -58,7 +57,7 @@ export function calculatorCsvRows(input: CalculatorInput, result: CalculatorResu
     ["Max relievable contribution (EUR)", money(result.maxRelievableContribution)],
     [],
     ["YEAR BY YEAR (future euros; divide by the deflator for today's money)"],
-    ["Age", "Phase", "Pot (EUR)", "Paid in to date (EUR)", "Drawn (EUR)", "State Pension (EUR)", "Other income (EUR)", "ARF minimum applied", "Shortfall", "Deflator"],
+    ["Age", "Phase", "Pot (EUR)", "Paid in to date (EUR)", "Drawn from pot (EUR)", "State Pension (EUR)", "Other income (EUR)", "ARF minimum applied", "Shortfall", "Deflator"],
     ...result.years.map((y) => [
       y.age,
       y.phase,

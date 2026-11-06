@@ -11,7 +11,7 @@ import { PageIntro } from "@/components/editorial/page-intro";
 import { Reveal } from "@/components/editorial/reveal";
 import { SectionLabel } from "@/components/editorial/section-label";
 import { IncomeChart, LifetimeChart } from "@/components/calculator/projection-chart";
-import { CAUTIOUS_GAP_PCT, calculateProjection, yearlyWithdrawal } from "@/lib/calculations";
+import { CAUTIOUS_GAP_PCT, calculateProjection, yearlyIncome } from "@/lib/calculations";
 import {
   LONG_RUN,
   MIX_PRESETS,
@@ -27,7 +27,7 @@ import { csvFileName, downloadCsv } from "@/lib/csv";
 import { calculatorCsvRows } from "@/lib/calculator-export";
 import { Disclaimer } from "@/components/legal/disclaimer";
 import { ExportButtons } from "@/components/legal/export-buttons";
-import type { CalculatorInput, PlanYear, WithdrawalPer } from "@/lib/types";
+import type { CalculatorInput, PlanYear, IncomePer } from "@/lib/types";
 
 function firstOf(value: number | readonly number[]): number {
   return Array.isArray(value) ? value[0] : (value as number);
@@ -61,10 +61,9 @@ const DEFAULTS: BaseInput = {
   fundAmcPct: 1,
   inflationPct: 2,
   takeLumpSum: true,
-  withdrawalAmount: 1_500,
-  withdrawalPer: "month",
-  withdrawalIndexed: true,
-  bridgeTopUp: false,
+  incomeAmount: 2_500,
+  incomePer: "month",
+  incomeIndexed: true,
   includeStatePension: true,
   statePensionWeekly: STATE_PENSION.contributoryMax2026,
   otherIncomeYearly: 0,
@@ -85,6 +84,8 @@ const DEFAULT_GROWTH: GrowthChoice = {
 
 const TAX_RATE_LABELS: Record<string, string> = { "20": "20% standard rate", "40": "40% higher rate" };
 const PLAN_TO = [85, 90, 95, 100] as const;
+/** Retiring at or after this leaves no retired years to describe. */
+const LAST_RETIRED_AGE = 100;
 const PHASE_COLUMNS: Record<number, string> = { 2: "md:grid-cols-2", 3: "md:grid-cols-3" };
 
 // ─── Small controls ────────────────────────────────────────────────────────
@@ -285,7 +286,7 @@ export default function CalculatorPage() {
   const show = (value: number, year: Pick<PlanYear, "deflator"> = retireYear) => formatEuro(money(value, year));
   const moneyNote = todaysMoney ? "in today's money" : "in future euros";
 
-  const yearlyPlan = yearlyWithdrawal(input);
+  const yearlyPlan = yearlyIncome(input);
   const retiredYears = result.years.filter((y) => y.phase === "retired");
   const spAge = STATE_PENSION.age;
   const retiringEarly = input.retirementAge < spAge;
@@ -312,10 +313,13 @@ export default function CalculatorPage() {
       : result.runsOutAge >= input.planToAge - 5
         ? "text-warning"
         : "text-destructive";
-  // Covering the State Pension gap is itself more than the pot can pay for.
-  const bridgeUnaffordable =
-    input.bridgeTopUp && input.includeStatePension && retiringEarly && result.sustainableYearly === 0 && result.drawdownPot > 0;
-  const per = (yearly: number) => (input.withdrawalPer === "month" ? `${formatEuro(yearly / 12)} a month` : `${formatEuro(yearly)} a year`);
+  // What the pot pays a year (today's money) before and after the State Pension starts.
+  const potDrawAt = (age: number) => {
+    const y = yearAt(age);
+    return y && y.phase === "retired" ? y.withdrawal / y.deflator : 0;
+  };
+  const statePensionYearly = input.statePensionWeekly * 52;
+  const per = (yearly: number) => (input.incomePer === "month" ? `${formatEuro(yearly / 12)} a month` : `${formatEuro(yearly)} a year`);
 
   const headline = [
     {
@@ -341,29 +345,23 @@ export default function CalculatorPage() {
     },
     {
       no: "03",
-      label: `drawing ${per(yearlyPlan)}${input.bridgeTopUp && input.includeStatePension && retiringEarly ? ` + gap cover to ${spAge}` : ""}`,
+      label: `an income of ${per(yearlyPlan)}`,
       value: lastsLabel,
       detail:
-        result.runsOutAge === null ? "your pot still has money at 100" : `your pot runs dry at ${result.runsOutAge}`,
+        result.runsOutAge === null
+          ? "your pot still has money at 100"
+          : `your pot can't make up the rest from ${result.runsOutAge}`,
       tone: lastsTone,
     },
-    bridgeUnaffordable
-      ? {
-          no: "04",
-          label: `to last until ${input.planToAge}`,
-          value: "not enough",
-          detail: `covering the state pension gap alone would empty the pot before ${input.planToAge}`,
-          tone: "text-destructive",
-        }
-      : {
-          no: "04",
-          label: `to last until ${input.planToAge}, draw up to`,
-          value: per(result.sustainableYearly),
-          detail: `today's money${input.withdrawalIndexed ? ", rising with inflation" : ""}${
-            input.bridgeTopUp && retiringEarly ? `, plus the gap cover until ${spAge}` : ""
-          }`,
-          tone: "text-primary",
-        },
+    {
+      no: "04",
+      label: `income that lasts until ${input.planToAge}`,
+      value: per(result.sustainableYearly),
+      detail: `today's money${input.incomeIndexed ? ", rising with inflation" : ""}${
+        input.includeStatePension ? ", state pension included" : ""
+      }`,
+      tone: "text-primary",
+    },
   ];
 
   // ── What to know, most important first ──
@@ -390,18 +388,25 @@ export default function CalculatorPage() {
       ),
     });
   }
-  if (retiringEarly && input.includeStatePension) {
+  if (input.includeStatePension && input.retirementAge < LAST_RETIRED_AGE) {
+    const before = potDrawAt(input.retirementAge);
+    const after = potDrawAt(Math.max(spAge, input.retirementAge));
     notes.push({
-      tone: "warn",
-      body: (
+      tone: retiringEarly ? "warn" : "info",
+      body: retiringEarly ? (
         <>
           <strong>
             no state pension until {spAge}: {spAge - input.retirementAge} year{spAge - input.retirementAge === 1 ? "" : "s"} on
             your pot alone.
           </strong>{" "}
-          {input.bridgeTopUp
-            ? `you're drawing an extra ${formatEuro(input.statePensionWeekly * 52)} a year until then to cover it, so your income stays level.`
-            : `your income jumps by about ${formatEuro(input.statePensionWeekly * 52)} a year at ${spAge}. turn on "cover the gap until ${spAge}" to keep it level.`}
+          your pot pays all {formatEuro(before)} a year until then. from {spAge} the state pension pays{" "}
+          {formatEuro(statePensionYearly)} of it, so you draw {after > 0 ? `only ${formatEuro(after)}` : "nothing"} a year from
+          the pot{result.runsOutAge !== null && result.runsOutAge < spAge ? " — if it lasts that long" : ""}.
+        </>
+      ) : (
+        <>
+          <strong>the state pension pays {formatEuro(statePensionYearly)} a year of your income</strong>, so you draw{" "}
+          {after > 0 ? `only ${formatEuro(after)}` : "nothing"} a year from your pot (today&apos;s money).
         </>
       ),
     });
@@ -412,21 +417,12 @@ export default function CalculatorPage() {
       body: (
         <>
           <strong>
-            at {per(yearlyPlan)}, your pot runs out at {result.runsOutAge}.
+            for {per(yearlyPlan)}, your pot runs out at {result.runsOutAge}.
           </strong>{" "}
-          {bridgeUnaffordable ? (
-            <>
-              even covering the state pension gap until {spAge} would use up the pot before {input.planToAge}. turn the gap
-              cover off, retire later{result.yearsToRetirement > 0 ? " or save more" : ""}.
-            </>
-          ) : (
-            <>
-              to make it last until {input.planToAge}, draw about {per(result.sustainableYearly)} instead (today&apos;s
-              money){result.yearsToRetirement > 0 ? ", save more, or retire a little later" : ""}.
-            </>
-          )}
+          for an income that lasts until {input.planToAge}, aim for about {per(result.sustainableYearly)} instead
+          (today&apos;s money){result.yearsToRetirement > 0 ? ", save more, or retire a little later" : ""}.
           {input.includeStatePension && result.runsOutAge >= spAge
-            ? ` after that you'd live on the state pension of about ${formatEuro(input.statePensionWeekly * 52)} a year.`
+            ? ` after that you'd live on the state pension of about ${formatEuro(statePensionYearly)} a year.`
             : ""}
         </>
       ),
@@ -439,7 +435,7 @@ export default function CalculatorPage() {
           <strong>
             your plan lasts {result.runsOutAge === null ? "past 100" : `until ${result.runsOutAge}`}.
           </strong>{" "}
-          you could draw up to {per(result.sustainableYearly)} and still last until {input.planToAge}.
+          you could have up to {per(result.sustainableYearly)} and still last until {input.planToAge}.
         </>
       ),
     });
@@ -760,21 +756,25 @@ export default function CalculatorPage() {
             <FieldGroup title="in retirement">
               <EuroField
                 id="withdrawal"
-                label="draw from your pot"
-                value={base.withdrawalAmount}
-                hint="in today's money, before tax"
-                onChange={(v) => update("withdrawalAmount", v)}
+                label="income you want"
+                value={base.incomeAmount}
+                hint={
+                  base.includeStatePension
+                    ? `in all, today's money, before tax. your pot makes up whatever the state pension${base.otherIncomeYearly > 0 ? " and other income" : ""} don't pay.`
+                    : "in all, today's money, before tax. your pot pays it."
+                }
+                onChange={(v) => update("incomeAmount", v)}
               >
                 <div className="flex shrink-0 gap-1.5">
-                  {(["month", "year"] as WithdrawalPer[]).map((p) => (
+                  {(["month", "year"] as IncomePer[]).map((p) => (
                     <Chip
                       key={p}
-                      active={base.withdrawalPer === p}
+                      active={base.incomePer === p}
                       onClick={() => {
-                        if (p === base.withdrawalPer) return;
+                        if (p === base.incomePer) return;
                         // Keep the same yearly amount when switching.
-                        update("withdrawalPer", p);
-                        update("withdrawalAmount", Math.round(p === "month" ? base.withdrawalAmount / 12 : base.withdrawalAmount * 12));
+                        update("incomePer", p);
+                        update("incomeAmount", Math.round(p === "month" ? base.incomeAmount / 12 : base.incomeAmount * 12));
                       }}
                     >
                       a {p}
@@ -785,9 +785,9 @@ export default function CalculatorPage() {
               <ToggleField
                 id="indexed"
                 label="rise with inflation"
-                checked={base.withdrawalIndexed}
-                hint={base.withdrawalIndexed ? "keeps its buying power every year" : "fixed in euros from retirement, so it buys less each year"}
-                onChange={(v) => update("withdrawalIndexed", v)}
+                checked={base.incomeIndexed}
+                hint={base.incomeIndexed ? "keeps its buying power every year" : "fixed in euros from retirement, so it buys less each year"}
+                onChange={(v) => update("incomeIndexed", v)}
               />
               <ToggleField
                 id="lump"
@@ -810,15 +810,6 @@ export default function CalculatorPage() {
                   value={base.statePensionWeekly}
                   hint={`full rate €${STATE_PENSION.contributoryMax2026.toFixed(2)} in 2026 (€${STATE_PENSION.contributoryMax2027.toFixed(2)} from january 2027). less with gaps in your prsi record — check mywelfare.ie.`}
                   onChange={(v) => update("statePensionWeekly", v)}
-                />
-              ) : null}
-              {base.includeStatePension && base.retirementAge < spAge ? (
-                <ToggleField
-                  id="bridge"
-                  label={`cover the gap until ${spAge}`}
-                  checked={base.bridgeTopUp}
-                  hint={`draw an extra ${formatEuro(base.statePensionWeekly * 52)} a year from your pot until the state pension starts, so your income stays level`}
-                  onChange={(v) => update("bridgeTopUp", v)}
                 />
               ) : null}
               <EuroField
@@ -1042,7 +1033,7 @@ export default function CalculatorPage() {
                     <tr className="border-b border-border">
                       <th className="py-2 text-left font-normal">age</th>
                       <th className="py-2 font-normal">pot</th>
-                      <th className="py-2 font-normal">drawn</th>
+                      <th className="py-2 font-normal">from pot</th>
                       <th className="py-2 font-normal">state pension</th>
                       <th className="py-2 font-normal">total income</th>
                     </tr>

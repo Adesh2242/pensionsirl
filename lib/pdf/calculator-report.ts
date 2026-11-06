@@ -1,5 +1,5 @@
 import type { CalculatorInput, CalculatorResult, PlanYear } from "@/lib/types";
-import { CAUTIOUS_GAP_PCT, yearlyWithdrawal } from "@/lib/calculations";
+import { CAUTIOUS_GAP_PCT, yearlyIncome } from "@/lib/calculations";
 import { STATE_PENSION } from "@/lib/pension-guide";
 import { lineChart } from "@/lib/pdf/charts";
 import { COLOR, Report, euro, percent } from "@/lib/pdf/layout";
@@ -18,12 +18,12 @@ export function buildCalculatorReport(
   const m = (v: number, y: Pick<PlanYear, "deflator">) => (todaysMoney ? v / y.deflator : v);
   const retire = result.years.find((y) => y.age === input.retirementAge) ?? { deflator: 1 };
   const moneyNote = todaysMoney ? "in today's money" : "in future euros";
-  const yearly = yearlyWithdrawal(input);
+  const yearly = yearlyIncome(input);
   const spAge = STATE_PENSION.age;
 
   report.paragraph(
-    `From age ${input.currentAge}, retiring at ${input.retirementAge} and drawing ${euro(yearly)} a year from the pot (today's money${
-      input.withdrawalIndexed ? ", rising with inflation" : ""
+    `From age ${input.currentAge}, retiring at ${input.retirementAge} on an income of ${euro(yearly)} a year in all, the pot making up what the State Pension and other income don't (today's money${
+      input.incomeIndexed ? ", rising with inflation" : ""
     }). Growth ${percent(input.preRetirementGrowthPct)} a year while saving and ${percent(input.postRetirementGrowthPct)} once retired, before a ${input.fundAmcPct.toFixed(2)}% charge; inflation ${percent(input.inflationPct)}. Amounts ${moneyNote}, before income tax and USC.`,
     { size: 8.5, gap: 5 },
   );
@@ -38,7 +38,7 @@ export function buildCalculatorReport(
     {
       label: "Pot lasts",
       value: result.runsOutAge === null ? "Beyond 100" : `Until ${result.runsOutAge}`,
-      detail: `drawing ${euro(yearly)} a year`,
+      detail: `on ${euro(yearly)} a year`,
       tone: result.runsOutAge === null || result.runsOutAge >= input.planToAge ? COLOR.green : COLOR.orange,
     },
     {
@@ -55,16 +55,22 @@ export function buildCalculatorReport(
     notes.push(
       `Check you can draw your pension at ${input.retirementAge}: workplace pensions usually from 50 once you've left that employer; PRSAs and personal pensions generally from 60.`,
     );
-  if (input.includeStatePension && input.retirementAge < spAge)
+  if (input.includeStatePension) {
+    const drawAt = (age: number) => {
+      const y = result.years.find((r) => r.age === age && r.phase === "retired");
+      return y ? y.withdrawal / y.deflator : 0;
+    };
+    const after = drawAt(Math.max(spAge, input.retirementAge));
     notes.push(
-      `No State Pension until ${spAge}: ${spAge - input.retirementAge} years on the pot alone${
-        input.bridgeTopUp ? `, drawing an extra ${euro(input.statePensionWeekly * 52)} a year until then to keep income level` : ""
-      }.`,
+      input.retirementAge < spAge
+        ? `No State Pension until ${spAge}: ${spAge - input.retirementAge} years on the pot alone, paying ${euro(drawAt(input.retirementAge))} a year. From ${spAge} the State Pension pays ${euro(input.statePensionWeekly * 52)} of your income, so the pot pays ${euro(after)} a year (today's money).`
+        : `The State Pension pays ${euro(input.statePensionWeekly * 52)} a year of your income, so the pot pays ${euro(after)} a year (today's money).`,
     );
+  }
   notes.push(
     result.runsOutAge !== null && result.runsOutAge < input.planToAge
-      ? `At ${euro(yearly)} a year the pot runs out at ${result.runsOutAge}. To last until ${input.planToAge}, draw about ${euro(result.sustainableYearly)} a year.`
-      : `The plan lasts ${result.runsOutAge === null ? "past 100" : `until ${result.runsOutAge}`}; up to ${euro(result.sustainableYearly)} a year would last until ${input.planToAge}.`,
+      ? `For ${euro(yearly)} a year the pot runs out at ${result.runsOutAge}. An income that lasts until ${input.planToAge} is about ${euro(result.sustainableYearly)} a year.`
+      : `The plan lasts ${result.runsOutAge === null ? "past 100" : `until ${result.runsOutAge}`}; an income of up to ${euro(result.sustainableYearly)} a year would last until ${input.planToAge}.`,
   );
   if (result.cautiousRunsOutAge !== null && result.cautiousRunsOutAge !== result.runsOutAge)
     notes.push(`If returns were ${CAUTIOUS_GAP_PCT}% a year lower, the pot would run out at ${result.cautiousRunsOutAge}.`);
@@ -85,7 +91,7 @@ export function buildCalculatorReport(
       ["Pension pot today", euro(input.currentPotValue), "Tax rate", `${input.marginalTaxRatePct}%`],
       ["Growth while saving", `${percent(input.preRetirementGrowthPct)} a year`, "Growth once retired", `${percent(input.postRetirementGrowthPct)} a year`],
       ["Reduce risk over", input.lifestyleYears ? `last ${input.lifestyleYears} years` : "off", "Annual charge", `${input.fundAmcPct.toFixed(2)}%`],
-      ["Draw from pot", `${euro(input.withdrawalAmount)} a ${input.withdrawalPer}`, "Rises with inflation", input.withdrawalIndexed ? "yes" : "no"],
+      ["Income wanted", `${euro(input.incomeAmount)} a ${input.incomePer}`, "Rises with inflation", input.incomeIndexed ? "yes" : "no"],
       ["25% lump sum", input.takeLumpSum ? "yes" : "no", "State Pension", input.includeStatePension ? `${euro(input.statePensionWeekly)} a week from ${spAge}` : "not included"],
       ["Other income", `${euro(input.otherIncomeYearly)} a year`, "Inflation", `${percent(input.inflationPct)} a year`],
     ],
@@ -165,7 +171,7 @@ export function buildCalculatorReport(
 
   report.section("Year by year", moneyNote);
   report.table(
-    ["Age", "Pot", "Drawn", "State Pension", "Total income"],
+    ["Age", "Pot", "From pot", "State Pension", "Total income"],
     result.years.map((y) => [
       `${y.age}${y.age === input.retirementAge ? " retire" : ""}`,
       euro(m(y.potValue, y)),
