@@ -11,7 +11,8 @@ import { RETIREMENT, STATE_PENSION } from "./pension-guide";
  * retired rate over the last `lifestyleYears` (lifestyling).
  *
  * Retired: 25% may come out as a lump sum; the rest is drawn down like an
- * ARF. Each year the planned withdrawal comes out first, then the rest grows.
+ * ARF. You set the income you want; each year the pot pays whatever the
+ * State Pension and other income don't, then the rest grows.
  * From 60 Revenue taxes an ARF as if at least 4% a year were drawn (5% from
  * 70, 6% over €2m), so the model draws at least that. The State Pension
  * starts at 66, so retiring earlier leaves "bridge years" on the pot alone.
@@ -67,7 +68,7 @@ interface Drawdown {
   minimumFromAge: number | null;
 }
 
-/** Retired years from `startPot` at retirement, drawing `yearlyToday` (today's euros) a year. */
+/** Retired years from `startPot` at retirement, aiming for `yearlyToday` (today's euros) of income a year in all. */
 function drawdown(input: CalculatorInput, startPot: number, yearlyToday: number, growthShiftPct = 0): Drawdown {
   const { currentAge, retirementAge, inflationPct, fundAmcPct } = input;
   const inflation = inflationPct / 100;
@@ -81,13 +82,12 @@ function drawdown(input: CalculatorInput, startPot: number, yearlyToday: number,
   let minimumFromAge: number | null = null;
   for (let age = retirementAge; age < LAST_AGE; age++) {
     const deflator = deflatorAt(age);
-    const base = yearlyToday * (input.withdrawalIndexed ? deflator : atRetirement);
-    // Bridging: until the State Pension starts, also draw what it would pay.
-    const topUp =
-      input.bridgeTopUp && input.includeStatePension && age < STATE_PENSION.age
-        ? input.statePensionWeekly * 52 * deflator
-        : 0;
-    const planned = base + topUp;
+    const wanted = yearlyToday * (input.incomeIndexed ? deflator : atRetirement);
+    const statePension =
+      input.includeStatePension && age >= STATE_PENSION.age ? input.statePensionWeekly * 52 * deflator : 0;
+    const otherIncome = input.otherIncomeYearly * deflator;
+    // The pot makes up the rest: all of it before the State Pension starts, less after.
+    const planned = Math.max(wanted - statePension - otherIncome, 0);
     const minimum = (pot * arfMinimumPct(age, pot)) / 100;
     const minimumApplied = minimum > planned && pot > 0;
     if (minimumApplied && minimumFromAge === null) minimumFromAge = age;
@@ -100,9 +100,8 @@ function drawdown(input: CalculatorInput, startPot: number, yearlyToday: number,
       potValue: round2(pot),
       contributions: 0,
       withdrawal: round2(withdrawal),
-      statePension:
-        input.includeStatePension && age >= STATE_PENSION.age ? round2(input.statePensionWeekly * 52 * deflator) : 0,
-      otherIncome: round2(input.otherIncomeYearly * deflator),
+      statePension: round2(statePension),
+      otherIncome: round2(otherIncome),
       minimumApplied,
       shortfall,
       deflator,
@@ -112,15 +111,16 @@ function drawdown(input: CalculatorInput, startPot: number, yearlyToday: number,
   return { years, runsOutAge, minimumFromAge };
 }
 
-/** The largest yearly withdrawal (today's money) that still pays in full until `toAge`. */
+/** The largest yearly income (today's money, all sources) the plan can pay in full until `toAge`. */
 function sustainableYearly(input: CalculatorInput, startPot: number, toAge: number): number {
-  if (startPot <= 0 || toAge <= input.retirementAge) return 0;
+  if (toAge <= input.retirementAge) return 0;
   const lasts = (w: number) => {
     const { runsOutAge } = drawdown(input, startPot, w);
     return runsOutAge === null || runsOutAge >= toAge;
   };
   let lo = 0;
-  let hi = startPot; // drawing the whole pot in year one can't last longer
+  // Above this the pot can't even pay the first year: it fails for sure.
+  let hi = Math.max(startPot, 0) + input.otherIncomeYearly + input.statePensionWeekly * 52 + 1;
   for (let i = 0; i < 60; i++) {
     const mid = (lo + hi) / 2;
     if (lasts(mid)) lo = mid;
@@ -129,8 +129,8 @@ function sustainableYearly(input: CalculatorInput, startPot: number, toAge: numb
   return Math.floor(lo / 10) * 10;
 }
 
-export function yearlyWithdrawal(input: Pick<CalculatorInput, "withdrawalAmount" | "withdrawalPer">): number {
-  return input.withdrawalPer === "month" ? input.withdrawalAmount * 12 : input.withdrawalAmount;
+export function yearlyIncome(input: Pick<CalculatorInput, "incomeAmount" | "incomePer">): number {
+  return input.incomePer === "month" ? input.incomeAmount * 12 : input.incomeAmount;
 }
 
 export function calculateProjection(input: CalculatorInput): CalculatorResult {
@@ -188,7 +188,7 @@ export function calculateProjection(input: CalculatorInput): CalculatorResult {
   // ── Retirement ──
   const lumpSum = input.takeLumpSum ? round2(projectedPot * LUMP_SUM_SHARE) : 0;
   const drawdownPot = round2(projectedPot - lumpSum);
-  const yearly = yearlyWithdrawal(input);
+  const yearly = yearlyIncome(input);
   const plan = drawdown(input, drawdownPot, yearly);
   const cautious = drawdown(input, cautiousPot(input, drawdownPot), yearly, -CAUTIOUS_GAP_PCT);
   // The retirement row shows the pot before the lump sum comes out.

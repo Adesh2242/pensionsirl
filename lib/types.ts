@@ -106,7 +106,7 @@ export interface HoldingInput {
   policyFee?: number;
 }
 
-export type WithdrawalPer = "month" | "year";
+export type IncomePer = "month" | "year";
 
 /** Everything the retirement calculator asks. Money is in today's euros unless it says otherwise. */
 export interface CalculatorInput {
@@ -128,13 +128,14 @@ export interface CalculatorInput {
   inflationPct: number;
   /** Take 25% of the pot as a lump sum at retirement (the first €200,000 tax-free). */
   takeLumpSum: boolean;
-  /** What you'd like to draw from the pot, in today's money. */
-  withdrawalAmount: number;
-  withdrawalPer: WithdrawalPer;
-  /** Raise the withdrawal with inflation each year (otherwise fixed in euros from retirement). */
-  withdrawalIndexed: boolean;
-  /** Before the State Pension starts, also draw what it would pay, so income stays level. */
-  bridgeTopUp: boolean;
+  /**
+   * The income you want in retirement, in today's money, from every source.
+   * The pot pays whatever the State Pension and other income don't.
+   */
+  incomeAmount: number;
+  incomePer: IncomePer;
+  /** Raise the income with inflation each year (otherwise fixed in euros from retirement). */
+  incomeIndexed: boolean;
   includeStatePension: boolean;
   /** Weekly State Pension in today's money; paid from age 66, assumed to rise with inflation. */
   statePensionWeekly: number;
@@ -152,13 +153,13 @@ export interface PlanYear {
   potValue: number;
   /** Paid in so far, including the starting pot (saving years). */
   contributions: number;
-  /** Drawn from the pot during this year of age (retired years). */
+  /** Drawn from the pot during this year of age (retired years): the income wanted, less the State Pension and other income. */
   withdrawal: number;
   statePension: number;
   otherIncome: number;
   /** True when Revenue's ARF minimum, not your plan, set the withdrawal. */
   minimumApplied: boolean;
-  /** True when the pot couldn't pay the planned amount in full. */
+  /** True when the pot couldn't make up the income wanted in full. */
   shortfall: boolean;
   /** (1 + inflation)^(years from now). */
   deflator: number;
@@ -186,7 +187,7 @@ export interface CalculatorResult {
   runsOutAge: number | null;
   /** The same, if returns were 2% a year lower throughout. */
   cautiousRunsOutAge: number | null;
-  /** The most you could draw a year (today's money) and still last to planToAge. */
+  /** The most income a year (today's money, all sources) that still lasts to planToAge. */
   sustainableYearly: number;
   /** The first age Revenue's ARF minimum is more than your plan, if it ever is. */
   minimumFromAge: number | null;
