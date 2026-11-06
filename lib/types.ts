@@ -106,6 +106,9 @@ export interface HoldingInput {
   policyFee?: number;
 }
 
+export type WithdrawalPer = "month" | "year";
+
+/** Everything the retirement calculator asks. Money is in today's euros unless it says otherwise. */
 export interface CalculatorInput {
   currentAge: number;
   retirementAge: number;
@@ -113,9 +116,52 @@ export interface CalculatorInput {
   currentPotValue: number;
   employeeContributionPct: number;
   employerContributionPct: number;
-  assumedGrowthRatePct: number;
-  fundAmcPct: number;
+  /** Yearly pay rise; contributions are a share of pay, so they rise with it. */
+  salaryGrowthPct: number;
   marginalTaxRatePct: 20 | 40;
+  /** Growth before charges while saving, and once retired (the ARF). */
+  preRetirementGrowthPct: number;
+  postRetirementGrowthPct: number;
+  /** Years before retirement over which growth glides from the saving rate to the retired rate (lifestyling). 0 = off. */
+  lifestyleYears: number;
+  fundAmcPct: number;
+  inflationPct: number;
+  /** Take 25% of the pot as a lump sum at retirement (the first €200,000 tax-free). */
+  takeLumpSum: boolean;
+  /** What you'd like to draw from the pot, in today's money. */
+  withdrawalAmount: number;
+  withdrawalPer: WithdrawalPer;
+  /** Raise the withdrawal with inflation each year (otherwise fixed in euros from retirement). */
+  withdrawalIndexed: boolean;
+  /** Before the State Pension starts, also draw what it would pay, so income stays level. */
+  bridgeTopUp: boolean;
+  includeStatePension: boolean;
+  /** Weekly State Pension in today's money; paid from age 66, assumed to rise with inflation. */
+  statePensionWeekly: number;
+  /** Other yearly income in retirement (rent, a DB pension…), today's money, rising with inflation. */
+  otherIncomeYearly: number;
+  /** "Make it last to": the age the sustainable-income figure is worked out for. */
+  planToAge: number;
+}
+
+/** One year of the plan. Money is in future euros; divide by `deflator` for today's money. */
+export interface PlanYear {
+  age: number;
+  phase: "saving" | "retired";
+  /** Pot on reaching this age (at retirement: before any lump sum). */
+  potValue: number;
+  /** Paid in so far, including the starting pot (saving years). */
+  contributions: number;
+  /** Drawn from the pot during this year of age (retired years). */
+  withdrawal: number;
+  statePension: number;
+  otherIncome: number;
+  /** True when Revenue's ARF minimum, not your plan, set the withdrawal. */
+  minimumApplied: boolean;
+  /** True when the pot couldn't pay the planned amount in full. */
+  shortfall: boolean;
+  /** (1 + inflation)^(years from now). */
+  deflator: number;
 }
 
 export interface CalculatorResult {
@@ -124,12 +170,27 @@ export interface CalculatorResult {
   maxRelievableContribution: number;
   annualTaxReliefSaved: number;
   yearsToRetirement: number;
+  /** Pot on the day you retire, future euros. */
   projectedPot: number;
   totalContributions: number;
+  /** What charges cost by retirement: the pot without them less the pot with them. */
   totalFeesDrag: number;
-  yearlyProjection: {
-    age: number;
-    potValue: number;
-    contributions: number;
-  }[];
+  lumpSum: number;
+  lumpSumTax: number;
+  /** What's left invested to draw from (an ARF). */
+  drawdownPot: number;
+  /** The age the State Pension starts, and the years before it with the pot alone. */
+  statePensionAge: number;
+  bridgeYears: number;
+  /** The first age the pot can't pay the plan in full, or null if it lasts to 100. */
+  runsOutAge: number | null;
+  /** The same, if returns were 2% a year lower throughout. */
+  cautiousRunsOutAge: number | null;
+  /** The most you could draw a year (today's money) and still last to planToAge. */
+  sustainableYearly: number;
+  /** The first age Revenue's ARF minimum is more than your plan, if it ever is. */
+  minimumFromAge: number | null;
+  /** Your pay in the last year of work, today's money. */
+  finalSalaryToday: number;
+  years: PlanYear[];
 }

@@ -40,8 +40,8 @@ const tools = [
   {
     no: "03",
     href: "/calculator",
-    title: "project your pot",
-    items: ["revenue age-related limits", "€115,000 earnings cap", "charge drag over time", "growth vs contributions"],
+    title: "plan your retirement",
+    items: ["how long your pot lasts", "early retirement before 66", "lump sum and state pension", "inflation and tax relief"],
   },
   {
     no: "04",

@@ -1,9 +1,9 @@
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata = pageMetadata({
-  title: "Irish Pension Calculator with Tax Relief",
+  title: "Irish Pension Calculator: Retirement Income, Drawdown & Tax Relief",
   description:
-    "Estimate your pension pot at retirement in Ireland. Uses Revenue's age-related tax relief limits and the €115,000 earnings cap, with employer contributions and what your fund's charges cost.",
+    "Plan your pension in Ireland from saving to spending: your pot at retirement, the 25% tax-free lump sum, how long your income lasts, retiring before the State Pension at 66, inflation and Revenue's tax relief limits.",
   path: "/calculator",
 });
 
