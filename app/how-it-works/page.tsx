@@ -27,6 +27,10 @@ const faqs = [
     a: "The calculator uses Revenue.ie's age-related percentage limits on net relevant earnings (15% under 30, rising to 40% at 60+) and the €115,000 earnings cap for relief purposes, applied to your marginal tax rate.",
   },
   {
+    q: "how does the retirement calculator work?",
+    a: "It steps through every year from now to 100. While you save, contributions are a share of your pay (which rises each year) and the pot grows at a rate set by how much is in shares — 6.5% a year for shares and 3% for bonds and cash over the long run by default, or your own fund's mix or record — less the annual charge, moving to a lower-risk mix before retirement if you choose. At retirement you can take 25% as a lump sum (the first €200,000 tax-free); the rest is drawn down like an ARF, at least Revenue's minimum from 60 (4%, 5% from 70). The State Pension starts at 66, so retiring earlier means years on your pot alone. Amounts can be shown in today's money, with inflation taken out. Income is before income tax and USC.",
+  },
+  {
     q: "is this financial advice?",
     a: "No. PensionIQ is an information and comparison tool. Figures are illustrative and you should speak to a qualified financial advisor before making pension decisions.",
   },
@@ -50,7 +54,7 @@ const steps = [
   {
     no: "03",
     title: "the numbers get real",
-    body: "the calculator applies revenue's age-related relief limits and the €115,000 cap, then compounds your fund's charge against the projected pot.",
+    body: "the calculator follows your pot from today to 100: saving with revenue's relief limits, then the lump sum, your income, the state pension from 66 and how long it all lasts, in today's money.",
   },
 ];
 
